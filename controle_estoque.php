@@ -40,6 +40,8 @@ $conexao->close();
             <a href="adicionar_produto.php">Adicionar Produto</a>
             <a href="listar_produtos.php">Listar Produtos</a>
             <a href="registrar_venda.php">Registrar Venda</a>
+            <a href="relatorios.php">Relatórios</a>
+            <a href="receitas.php">Receitas</a>
             <a href="logout.php">Sair</a>
         </nav>
     </header>

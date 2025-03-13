@@ -36,7 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['produtos_vendidos']) &
                 $preco_unitario = $produto['preco'];
                 $estoque_atual = $produto['quantidade'];
                 $estoque_minimo = $produto['estoque_minimo'];
-
                 if ($quantidade_vendida <= $estoque_atual) {
                     $stmt_venda = $conexao->prepare("INSERT INTO vendas (produto_id, quantidade_vendida, preco_unitario_venda) VALUES (?, ?, ?)");
                     $stmt_venda->bind_param('iid', $produto_id, $quantidade_vendida, $preco_unitario);
@@ -96,6 +95,8 @@ $conexao->close();
             <a href="adicionar_produto.php">Adicionar Produto</a>
             <a href="listar_produtos.php">Listar Produtos</a>
             <a href="registrar_venda.php">Registrar Venda</a>
+            <a href="relatorios.php">Relatórios</a>
+            <a href="receitas.php">Receitas</a>
             <a href="logout.php">Sair</a>
         </nav>
     </header>

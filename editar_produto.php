@@ -21,8 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $descricao = $_POST['descricao'];
     $quantidade = intval($_POST['quantidade']);
     $preco = floatval($_POST['preco']);
+    $estoque_minimo = intval($_POST['estoque_minimo']);
 
-    if (empty($nome_produto) || $quantidade < 0 || $preco < 0) {
+    if (empty($nome_produto) || $quantidade < 0 || $preco < 0 || $estoque_minimo < 0) {
         $mensagem = "Erro: Nome vazio ou valores inválidos!";
     } else {
         $imagem_nome = $produto['imagem'];
@@ -49,8 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if (empty($mensagem)) {
-            $stmt = $conexao->prepare("UPDATE produtos SET nome_produto = ?, descricao = ?, quantidade = ?, preco = ?, imagem = ? WHERE id = ?");
-            $stmt->bind_param("ssidsi", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $id);
+            $stmt = $conexao->prepare("UPDATE produtos SET nome_produto = ?, descricao = ?, quantidade = ?, preco = ?, imagem = ?, estoque_minimo = ? WHERE id = ?");
+            $stmt->bind_param("ssidsii", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $estoque_minimo, $id);
             if ($stmt->execute()) {
                 $mensagem = "Produto atualizado com sucesso!";
             } else {
@@ -80,6 +81,8 @@ $conexao->close();
             <a href="adicionar_produto.php">Adicionar Produto</a>
             <a href="listar_produtos.php">Listar Produtos</a>
             <a href="registrar_venda.php">Registrar Venda</a>
+            <a href="relatorios.php">Relatórios</a>
+            <a href="receitas.php">Receitas</a>
             <a href="logout.php">Sair</a>
         </nav>
     </header>
@@ -93,6 +96,7 @@ $conexao->close();
             <textarea name="descricao" placeholder="Descrição (opcional)"><?php echo htmlspecialchars($produto['descricao']); ?></textarea>
             <input type="number" name="quantidade" value="<?php echo $produto['quantidade']; ?>" placeholder="Quantidade" required min="0">
             <input type="number" name="preco" value="<?php echo $produto['preco']; ?>" placeholder="Preço (ex: 9.99)" step="0.01" required min="0">
+            <input type="number" name="estoque_minimo" value="<?php echo htmlspecialchars($produto['estoque_minimo'] ?? 0); ?>" placeholder="Estoque Mínimo" required min="0">
             <div class="imagem-atual">
                 <?php if ($produto['imagem']): ?>
                     <p>Imagem Atual:</p>
