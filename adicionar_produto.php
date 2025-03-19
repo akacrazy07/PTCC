@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <a href="registrar_venda.php">Registrar Venda</a>
             <a href="relatorios.php">Relatórios</a>
             <a href="receitas.php">Receitas</a>
+            <a href="desperdicio.php">Desperdício</a>
             <a href="logout.php">Sair</a>
             </nav>
         </header>
