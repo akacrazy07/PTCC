@@ -166,3 +166,12 @@ tr:hover {
     border-radius: 5px;
     margin-top: 5px;
 }
+.alertas-validade {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #ffcccc;
+    border-radius: 5px;
+}
+.alertas-validade h3 {
+    color: #721c24;
+}

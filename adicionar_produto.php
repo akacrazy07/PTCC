@@ -8,12 +8,22 @@ require_once 'conexao.php';
 
 $mensagem = '';
 
+//buscar categorias
+$sql_categorias = "SELECT id, nome FROM categorias";
+$resultado_categorias = $conexao->query($sql_categorias);
+$categorias = [];
+while ($row = $resultado_categorias->fetch_assoc()) {
+    $categorias[] = $row;
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nome_produto = $_POST['nome_produto'];
     $descricao = $_POST['descricao'];
     $quantidade = intval($_POST['quantidade']);
     $preco = floatval($_POST['preco']);
     $estoque_minimo = intval($_POST['estoque_minimo']);
+    $categoria_id = intval($_POST['categoria_id']);
+    $data_validade = !empty($_POST['data_validade']) ? $_POST['data_validade'] : null;
 // validação
     if (empty($nome_produto) || $quantidade <= 0 || $preco <= 0 || $estoque_minimo <= 0) {
         $mensagem = "Erro: Nome vazio ou valores inválidos!";
@@ -42,9 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         // inserir no banco
         if (empty($mensagem)) {
-    $sql = "INSERT INTO produtos (nome_produto, descricao, quantidade, preco, imagem, estoque_minimo) VALUES (?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO produtos (nome_produto, descricao, quantidade, preco, imagem, estoque_minimo, categoria_id, data_validade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conexao->prepare($sql);
-    $stmt->bind_param("ssidsi", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $estoque_minimo);
+    $stmt->bind_param("ssidsiis", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $estoque_minimo, $categoria_id, $data_validade);
     if ($stmt->execute()) {
         $mensagem = 'Produto adicionado com sucesso!';
     } else {
@@ -89,6 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <input type="number" name="quantidade" placeholder="Quantidade Inicial" required min="0">
             <input type="number" name="preco" placeholder="Preço (ex: 9.99)" step="0.01" required min="0">
             <input type="number" name="estoque_minimo" placeholder="Estoque Mínimo" required min="0">
+            <select name="categoria_id" required>
+                <option value="">Selecione uma categoria</option>
+                <?php foreach ($categorias as $categoria): ?>
+                    <option value="<?php echo $categoria['id']; ?>"><?php echo htmlspecialchars($categoria['nome']); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <input type="date" name="data_validade" placeholder="Data de Validade (opcional)">
             <input type="file" name="imagem" accept=".jpg, .jpeg, .png" placeholder="Imagem do Produto">
             <button type="submit">Adicionar Produto</button>
             </form>

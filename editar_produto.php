@@ -16,12 +16,22 @@ $stmt->execute();
 $produto = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
+// buscar categorias
+$sql_categorias = "SELECT id, nome FROM categorias";
+$resultado_categorias = $conexao->query($sql_categorias);
+$categorias = [];
+while ($row = $resultado_categorias->fetch_assoc()) {
+    $categorias[] = $row;
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nome_produto = $_POST['nome_produto'];
     $descricao = $_POST['descricao'];
     $quantidade = intval($_POST['quantidade']);
     $preco = floatval($_POST['preco']);
     $estoque_minimo = intval($_POST['estoque_minimo']);
+    $categoria_id = intval($_POST['categoria_id']);
+    $data_validade = !empty($_POST['data_validade']) ? $_POST['data_validade'] : null;
 
     if (empty($nome_produto) || $quantidade < 0 || $preco < 0 || $estoque_minimo < 0) {
         $mensagem = "Erro: Nome vazio ou valores inválidos!";
@@ -50,10 +60,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if (empty($mensagem)) {
-            $stmt = $conexao->prepare("UPDATE produtos SET nome_produto = ?, descricao = ?, quantidade = ?, preco = ?, imagem = ?, estoque_minimo = ? WHERE id = ?");
-            $stmt->bind_param("ssidsii", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $estoque_minimo, $id);
+            $stmt = $conexao->prepare("UPDATE produtos SET nome_produto = ?, descricao = ?, quantidade = ?, preco = ?, imagem = ?, estoque_minimo = ?, categoria_id = ?, data_validade = ? WHERE id = ?");
+            $stmt->bind_param("ssidsiisi", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $estoque_minimo, $categoria_id, $data_validade, $id);
             if ($stmt->execute()) {
                 $mensagem = "Produto atualizado com sucesso!";
+                // recarregar dados do produto após atualização
+                $stmt = $conexao->prepare("SELECT * FROM produtos WHERE id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $produto = $stmt->get_result()->fetch_assoc();
             } else {
                 $mensagem = "Erro ao atualizar produto: " . $conexao->error;
             }
@@ -98,6 +113,15 @@ $conexao->close();
             <input type="number" name="quantidade" value="<?php echo $produto['quantidade']; ?>" placeholder="Quantidade" required min="0">
             <input type="number" name="preco" value="<?php echo $produto['preco']; ?>" placeholder="Preço (ex: 9.99)" step="0.01" required min="0">
             <input type="number" name="estoque_minimo" value="<?php echo htmlspecialchars($produto['estoque_minimo'] ?? 0); ?>" placeholder="Estoque Mínimo" required min="0">
+            <select name="categoria_id" required>
+                <option value="">Selecione uma categoria</option>
+                <?php foreach ($categorias as $categoria): ?>
+                    <option value="<?php echo $categoria['id']; ?>" <?php echo $produto['categoria_id'] == $categoria['id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($categoria['nome']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <input type="date" name="data_validade" value="<?php echo $produto['data_validade'] ? htmlspecialchars($produto['data_validade']) : ''; ?>" placeholder="Data de Validade (opcional)">
             <div class="imagem-atual">
                 <?php if ($produto['imagem']): ?>
                     <p>Imagem Atual:</p>

@@ -13,6 +13,23 @@ $sql_vendas = "SELECT SUM(quantidade_vendida * preco_unitario_venda) as total_ve
 $resultado_vendas = $conexao->query($sql_vendas);
 $dados_vendas = $resultado_vendas->fetch_assoc();
 
+// produtos com estoque baixo (avisar na dashboard)
+
+$sql_estoque_baixo = "SELECT nome_produto, quantidade, estoque_minimo FROM produtos WHERE quantidade < estoque_minimo";
+$resultado_estoque_baixo = $conexao->query($sql_estoque_baixo);
+$produtos_baixo = [];
+while ($produto = $resultado_estoque_baixo->fetch_assoc()) {
+    $produtos_baixo[] = $produto;
+}
+
+// produtos próximos do vencimento (menos de 7 dias)
+$sql_validade = "SELECT nome_produto, data_validade FROM produtos WHERE data_validade IS NOT NULL AND DATEDIFF(data_validade, CURDATE()) <= 7 AND data_validade >= CURDATE()";
+$resultado_validade = $conexao->query($sql_validade);
+$produtos_validade = [];
+while ($produto = $resultado_validade->fetch_assoc()) {
+    $produtos_validade[] = $produto;
+}
+
 //query para produtos com estoque baixo
 
 $sql_estoque_baixo = "SELECT nome_produto, quantidade, estoque_minimo FROM produtos WHERE quantidade < estoque_minimo";
@@ -34,7 +51,7 @@ $conexao->close();
     </head>
 <body>
     <header>
-        <h1>gestão de estoque - Panificadora </h1>
+        <h1>Gestão de Estoque - Panificadora </h1>
         <nav>
             <a href="controle_estoque.php">Dashboard</a>
             <a href="adicionar_produto.php">Adicionar Produto</a>
@@ -62,6 +79,19 @@ $conexao->close();
                     <?php endforeach; ?>
                 </ul>
     </div>
+<?php endif; ?>
+<?php if (!empty($produtos_validade)): ?>
+            <div class="alertas-validade">
+                <h3>Alertas de Validade Próxima</h3>
+                <ul>
+                    <?php foreach ($produtos_validade as $produto): ?>
+                        <?php
+                        $dias_restantes = (new DateTime())->diff(new DateTime($produto['data_validade']))->days;
+                        ?>
+                        <li><?php echo htmlspecialchars($produto['nome_produto']) . ": Vence em " . date('d/m/Y', strtotime($produto['data_validade'])) . " (faltam $dias_restantes dias)"; ?></li>
+                    <?php endforeach; ?>
+                </ul>
+</div>
 <?php endif; ?>
 </div>
 </body>
