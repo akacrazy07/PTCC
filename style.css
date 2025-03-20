@@ -109,7 +109,6 @@ tr:hover {
     max-width: 60px;
     border-radius: 5px;
 }
-
 .btn {
     display: inline-block;
     padding: 8px 12px;
@@ -118,49 +117,40 @@ tr:hover {
     font-size: 14px;
     transition: background-color 0.3s ease, transform 0.2s ease;
 }
-
 .btn-editar {
     background-color: #3498db;
     color: white;
 }
-
 .btn-editar:hover {
     background-color: #2980b9;
     transform: translateY(-2px);
 }
-
 .btn-excluir {
     background-color: #e74c3c;
     color: white;
     margin-left: 5px;
 }
-
 .btn-excluir:hover {
     background-color: #c0392b;
     transform: translateY(-2px);
 }
-
 .mensagem {
     padding: 10px;
     margin-bottom: 20px;
     border-radius: 5px;
     font-size: 15px;
 }
-
 .mensagem-success {
     background-color: #d4edda;
     color: #155724;
 }
-
 .mensagem-error {
     background-color: #f8d7da;
     color: #721c24;
 }
-
 .imagem-atual {
     margin: 15px 0;
 }
-
 .imagem-atual img {
     max-width: 100px;
     border-radius: 5px;
@@ -174,4 +164,13 @@ tr:hover {
 }
 .alertas-validade h3 {
     color: #721c24;
+}
+.alertas-backup {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #fff3cd;
+    border-radius: 5px;
+}
+.alertas-backup h3 {
+    color: #856404;
 }

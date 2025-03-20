@@ -1,6 +1,7 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true) {
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true ||
+!in_array($_SESSION['perfil'], ['admin', 'gerente'])) {
     header("Location: login.html");
     exit();
 }
@@ -57,6 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt->bind_param("ssidsiis", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $estoque_minimo, $categoria_id, $data_validade);
     if ($stmt->execute()) {
         $mensagem = 'Produto adicionado com sucesso!';
+        // registrar log
+        $usuario_id = $_SESSION['usuario_id'];
+                $acao = "Adicionou produto '$nome_produto'";
+                $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
+                $stmt_log->bind_param("is", $usuario_id, $acao);
+                $stmt_log->execute();
+                $stmt_log->close();
     } else {
         $mensagem = 'Erro ao adicionar produto: ' . $conexao->error;
     }
@@ -79,12 +87,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <h1>Gestão de estoque - Panificadora</h1>
             <nav>
             <a href="controle_estoque.php">Dashboard</a>
-            <a href="adicionar_produto.php">Adicionar Produto</a>
-            <a href="listar_produtos.php">Listar Produtos</a>
+            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="adicionar_produto.php">Adicionar Produto</a>
+                <a href="listar_produtos.php">Listar Produtos</a>
+            <?php endif; ?>
             <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="relatorios.php">Relatórios</a>
-            <a href="receitas.php">Receitas</a>
-            <a href="desperdicio.php">Desperdício</a>
+            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="relatorios.php">Relatórios</a>
+                <a href="receitas.php">Receitas</a>
+                <a href="desperdicio.php">Desperdício</a>
+            <?php endif; ?>
+            <?php if ($_SESSION['perfil'] === 'admin'): ?>
+                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
+            <?php endif; ?>
             <a href="logout.php">Sair</a>
             </nav>
         </header>

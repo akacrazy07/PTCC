@@ -6,27 +6,21 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true)
 }
 require_once 'conexao.php';
 
-// excluir produto
-if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
+// Excluir produto (apenas admin e gerente)
+if (isset($_GET['excluir']) && is_numeric($_GET['excluir']) && in_array($_SESSION['perfil'], ['admin', 'gerente'])) {
     $id = intval($_GET['excluir']);
-    
-    // primeiro pega a imagem pra excluir depois
-    $stmt_img = $conexao->prepare("SELECT imagem FROM produtos WHERE id = ?");
+    $stmt_img = $conexao->prepare("SELECT imagem, nome_produto FROM produtos WHERE id = ?");
     $stmt_img->bind_param("i", $id);
     $stmt_img->execute();
     $resultado_img = $stmt_img->get_result();
     $img = $resultado_img->fetch_assoc();
     $stmt_img->close();
 
-    // deleta as vendas associadas ao produto
     $stmt_vendas = $conexao->prepare("DELETE FROM vendas WHERE produto_id = ?");
     $stmt_vendas->bind_param("i", $id);
-    if (!$stmt_vendas->execute()) {
-        $mensagem = "Erro ao excluir vendas associadas: " . $conexao->error;
-    }
+    $stmt_vendas->execute();
     $stmt_vendas->close();
 
-    // agora deleta o produto
     $stmt = $conexao->prepare("DELETE FROM produtos WHERE id = ?");
     $stmt->bind_param("i", $id);
     if ($stmt->execute()) {
@@ -34,6 +28,13 @@ if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
         if ($img['imagem'] && file_exists("imagens/" . $img['imagem'])) {
             unlink("imagens/" . $img['imagem']);
         }
+        // Registrar log
+        $usuario_id = $_SESSION['usuario_id'];
+        $acao = "Excluiu produto '{$img['nome_produto']}'";
+        $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
+        $stmt_log->bind_param("is", $usuario_id, $acao);
+        $stmt_log->execute();
+        $stmt_log->close();
     } else {
         $mensagem = "Erro ao excluir produto: " . $conexao->error;
     }
@@ -83,12 +84,19 @@ $conexao->close();
         <h1>Gestão de Estoque - Panificadora</h1>
         <nav>
             <a href="controle_estoque.php">Dashboard</a>
-            <a href="adicionar_produto.php">Adicionar Produto</a>
+            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="adicionar_produto.php">Adicionar Produto</a>
+            <?php endif; ?>
             <a href="listar_produtos.php">Listar Produtos</a>
             <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="relatorios.php">Relatórios</a>
-            <a href="receitas.php">Receitas</a>
-            <a href="desperdicio.php">Desperdício</a>
+            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="relatorios.php">Relatórios</a>
+                <a href="receitas.php">Receitas</a>
+                <a href="desperdicio.php">Desperdício</a>
+            <?php endif; ?>
+            <?php if ($_SESSION['perfil'] === 'admin'): ?>
+                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
+            <?php endif; ?>
             <a href="logout.php">Sair</a>
         </nav>
     </header>
@@ -118,11 +126,12 @@ $conexao->close();
                         <th>Descrição</th>
                         <th>Quantidade</th>
                         <th>Preço</th>
+                        <th>Data de Validade</th>
                         <th>Ações</th>
                         </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($produtos as $produto): ?>
+                <?php foreach ($produtos as $produto): ?>
                         <?php
                         $hoje = new DateTime();
                         $validade = $produto['data_validade'] ? new DateTime($produto['data_validade']) : null;
@@ -131,13 +140,14 @@ $conexao->close();
                         ?>
                         <tr <?php echo $alerta ? 'class="alerta-validade"' : ''; ?>>
                             <td>
-                            <?php if ($produto['imagem']): ?>
+                                <?php if ($produto['imagem']): ?>
                                     <img src="imagens/<?php echo htmlspecialchars($produto['imagem']); ?>" alt="<?php echo htmlspecialchars($produto['nome_produto']); ?>" style="max-width: 50px;">
                                 <?php else: ?>
                                     Sem imagem
                                 <?php endif; ?>
                             </td>
                             <td><?php echo htmlspecialchars($produto['nome_produto']); ?></td>
+                            <td><?php echo htmlspecialchars($produto['categoria_nome'] ?? 'Sem categoria'); ?></td>
                             <td><?php echo htmlspecialchars($produto['descricao']); ?></td>
                             <td><?php echo htmlspecialchars($produto['quantidade']); ?></td>
                             <td>R$ <?php echo number_format($produto['preco'], 2, ',', '.'); ?></td>
@@ -148,10 +158,12 @@ $conexao->close();
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <a href="editar_produto.php?id=<?php echo $produto['id']; ?>" class="btn btn-editar">Editar</a>
-                                <a href="listar_produtos.php?excluir=<?php echo $produto['id']; ?>" class="btn btn-excluir" onclick="return confirm('Tem certeza que quer excluir este produto?');">Excluir</a>
+                                <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                                    <a href="editar_produto.php?id=<?php echo $produto['id']; ?>" class="btn btn-editar">Editar</a>
+                                    <a href="listar_produtos.php?excluir=<?php echo $produto['id']; ?>" class="btn btn-excluir" onclick="return confirm('Tem certeza que quer excluir este produto?');">Excluir</a>
+                                <?php endif; ?>
                             </td>
-                            </tr>
+                        </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>

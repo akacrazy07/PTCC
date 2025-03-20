@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['produtos_vendidos']) &
     $selecionados = $_POST['selecionar_produto'];
     $lucro_total = 0;
     $erro = false;
+    $log_acoes = []; // array para armazenar as ações realizadas
 
     foreach ($produtos_vendidos as $produto_id =>$quantidade_vendida) {
         $produto_id = intval($produto_id);
@@ -45,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['produtos_vendidos']) &
                         $stmt_update->bind_param('ii', $novo_estoque, $produto_id);
                         if ($stmt_update->execute()) {
                             $lucro_total += $preco_unitario * $quantidade_vendida;
+                            $log_acoes[] = "Registrou venda de $quantidade_vendida unidade(s) de '{$produto['nome_produto']}'"; // armazena a ação realizada
                             if ($novo_estoque < $estoque_minimo) {
                                 $mensagem_venda .= "Alerta: Estoque de" . htmlspecialchars($produto['nome_produto']) . " está abaixo do mínimo ($novo_estoque < $estoque_minimo)! ";
                             }
@@ -73,6 +75,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['produtos_vendidos']) &
     }
     if (!$erro && $lucro_total > 0) {
         $mensagem_venda = "Venda registrada com sucesso. Lucro total: R$ " . number_format($lucro_total, 2, ',', '.');
+        // registra a ação realizada no log
+        $usuario_id = $_SESSION['usuario_id'];
+        foreach ($log_acoes as $acao) {
+            $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
+            $stmt_log->bind_param("is", $usuario_id, $acao);
+            $stmt_log->execute();
+            $stmt_log->close();
+        }
     } elseif (!$erro) {
         $mensagem_venda = "Nenhum produto ou quantidade selecionado para venda.";
     }
@@ -91,13 +101,20 @@ $conexao->close();
     <header>
         <h1>Gestão de Estoque - Panificadora</h1>
         <nav>
-            <a href="controle_estoque.php">Dashboard</a>
-            <a href="adicionar_produto.php">Adicionar Produto</a>
+        <a href="controle_estoque.php">Dashboard</a>
+        <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="adicionar_produto.php">Adicionar Produto</a>
+            <?php endif; ?>
             <a href="listar_produtos.php">Listar Produtos</a>
             <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="relatorios.php">Relatórios</a>
-            <a href="receitas.php">Receitas</a>
-            <a href="desperdicio.php">Desperdício</a>
+            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="relatorios.php">Relatórios</a>
+                <a href="receitas.php">Receitas</a>
+                <a href="desperdicio.php">Desperdício</a>
+            <?php endif; ?>
+            <?php if ($_SESSION['perfil'] === 'admin'): ?>
+                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
+            <?php endif; ?>
             <a href="logout.php">Sair</a>
         </nav>
     </header>

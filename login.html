@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> DKS Brasil</title>
+    <title> Login - Panificadora</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,11 +11,22 @@
         <header>
             <h1> Login</h1>
         </header>
-        <form id="login-form" action="validar_login.php" method="post">
+        <form action="login.php" method="post">
             <input type="text" id="usuario" name="usuario" placeholder="Usuário" required>
+            <input type="text" name="cpf" placeholder="CPF (ex: 123.456.789-10)" required>
             <input type="password" id="senha" name="senha" placeholder="Senha" required>
             <button type="submit">Entrar</button>                
         </form>
     </div>
+    <script>
+        function formatarCPF(campo) {
+            let cpf = campo.value.replace(/\D/g, ''); // remove o que não é dígito
+            if (cpf.length > 11) cpf = cpf.slice(0, 11); // limita a 11 dígitos
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2'); // adiciona o primeiro ponto
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2'); // adiciona o segundo ponto
+            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2'); // adiciona o travessão
+            campo.value = cpf;
+        }
+    </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true) {
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true ||
+!in_array($_SESSION['perfil'], ['admin', 'gerente'])) {
     header("Location: login.html");
     exit();
 }
@@ -33,12 +34,19 @@ $conexao->close();
         <h1>Gestão de Estoque - Panificadora</h1>
         <nav>
             <a href="controle_estoque.php">Dashboard</a>
-            <a href="adicionar_produto.php">Adicionar Produto</a>
-            <a href="listar_produtos.php">Listar Produtos</a>
+            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="adicionar_produto.php">Adicionar Produto</a>
+                <a href="listar_produtos.php">Listar Produtos</a>
+            <?php endif; ?>
             <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="relatorios.php">Relatórios</a>
-            <a href="receitas.php">Receitas</a>
-            <a href="desperdicio.php">Desperdício</a>
+            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="relatorios.php">Relatórios</a>
+                <a href="receitas.php">Receitas</a>
+                <a href="desperdicio.php">Desperdício</a>
+            <?php endif; ?>
+            <?php if ($_SESSION['perfil'] === 'admin'): ?>
+                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
+            <?php endif; ?>
             <a href="logout.php">Sair</a>
         </nav>
     </header>
