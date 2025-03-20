@@ -69,6 +69,34 @@ LOCK TABLES `desperdicio` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `logs`
+--
+
+DROP TABLE IF EXISTS `logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` int(11) NOT NULL,
+  `acao` varchar(255) NOT NULL,
+  `data_acao` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `fk_usuario` (`usuario_id`),
+  CONSTRAINT `fk_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `logs`
+--
+
+LOCK TABLES `logs` WRITE;
+/*!40000 ALTER TABLE `logs` DISABLE KEYS */;
+INSERT INTO `logs` VALUES (1,1,'Excluiu usuÃ¡rio \'funcionario1\' (vendedor)','2025-03-20 02:12:22'),(2,1,'Adicionou usuÃ¡rio \'eduardo \' (gerente)','2025-03-20 02:13:30'),(3,1,'Adicionou usuÃ¡rio \'marcus\' (vendedor)','2025-03-20 02:34:37');
+/*!40000 ALTER TABLE `logs` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `produtos`
 --
 
@@ -135,10 +163,15 @@ DROP TABLE IF EXISTS `usuarios`;
 CREATE TABLE `usuarios` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `usuario` varchar(50) NOT NULL,
+  `cpf` varchar(14) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `perfil` enum('admin','gerente','vendedor') NOT NULL DEFAULT 'vendedor',
   `senha` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `usuario` (`usuario`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+  UNIQUE KEY `usuario` (`usuario`),
+  UNIQUE KEY `cpf` (`cpf`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -147,7 +180,7 @@ CREATE TABLE `usuarios` (
 
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
-INSERT INTO `usuarios` VALUES (1,'admin','$2y$10$cLZegIJV.SUQdyF.5LFgO.q5NzB5gMTxcC7o0MCYS4i/ISZjNowYG'),(2,'funcionario1','$2y$10$IQ1UBzls1GrRefl1Nk78hOerY9L/2geNUqx5Se7scPCd8YGC3RzlO'),(3,'teste','$2y$10$Afbc8GzLtGlWQCW5pMZSn.mBzTppuBdwj7uyJYwVeGJSd5QLGKsES');
+INSERT INTO `usuarios` VALUES (1,'admin','123.456.789-00','admin@padaria.com','admin','$2y$10$cLZegIJV.SUQdyF.5LFgO.q5NzB5gMTxcC7o0MCYS4i/ISZjNowYG'),(4,'eduardo ','666.777.888-99','eduardojsr.akcr@gmail.com','gerente','$2y$10$0DvyZ0TW8MmB7bDDIj2L2.mZxkJW/lUaqQNKk25IVS1n0S46N/h3y'),(5,'marcus','999.888.777-66','mkdanorte@gmail.com','vendedor','$2y$10$HRmp6sdLup0M0Q3GjCL68u94nhou0OHwFtWVmGXuE22oXRqnEmBeW');
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -188,4 +221,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-03-19  0:24:15
+-- Dump completed on 2025-03-20  0:30:11
