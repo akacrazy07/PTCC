@@ -1,10 +1,11 @@
 <?php
-session_start ();
-if (!isset ($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true) {
+session_start();
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true) {
     header("Location: login.html");
     exit();
 }
 require_once 'conexao.php';
+
 $sql_produtos = "SELECT COUNT(*) as total_produtos, SUM(quantidade) as total_estoque FROM produtos";
 $resultado_produtos = $conexao->query($sql_produtos);
 $dados_produtos = $resultado_produtos->fetch_assoc();
@@ -43,33 +44,33 @@ $conexao->close();
 
 <!DOCTYPE html>
 <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Controle de estoque panificadora </title>
-        <link rel="stylesheet" href="style.css">
-    </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Estoque Panificadora</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
     <header>
-        <h1>Gestão de Estoque - Panificadora </h1>
+        <h1>Gestão de Estoque - Panificadora</h1>
         <nav>
-        <a href="controle_estoque.php">Dashboard</a>
-    <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-        <a href="adicionar_produto.php">Adicionar Produto</a>
-        <a href="planejamento_producao.php">Planejamento de Produção</a>
-    <?php endif; ?>
-    <a href="registrar_venda.php">Registrar Venda</a>
-    <a href="listar_produtos.php">Listar Produtos</a>
-    <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-        <a href="relatorios.php">Relatórios</a>
-        <a href="receitas.php">Receitas</a>
-        <a href="desperdicio.php">Desperdício</a>
-    <?php endif; ?>
-    <?php if ($_SESSION['perfil'] === 'admin'): ?>
-        <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
-        <a href="ver_logs.php">Ver Logs</a>
-    <?php endif; ?>
-    <a href="logout.php">Sair</a>
+            <a href="controle_estoque.php">Dashboard</a>
+            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="adicionar_produto.php">Adicionar Produto</a>
+                <a href="planejamento_producao.php">Planejamento de Produção</a>
+            <?php endif; ?>
+            <a href="registrar_venda.php">Registrar Venda</a>
+            <a href="listar_produtos.php">Listar Produtos</a>
+            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
+                <a href="relatorios.php">Relatórios</a>
+                <a href="receitas.php">Receitas</a>
+                <a href="desperdicio.php">Desperdício</a>
+            <?php endif; ?>
+            <?php if ($_SESSION['perfil'] === 'admin'): ?>
+                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
+                <a href="ver_logs.php">Ver Logs</a>
+            <?php endif; ?>
+            <a href="logout.php">Sair</a>
         </nav>
     </header>
     <div class="container">
