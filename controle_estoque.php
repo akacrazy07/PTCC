@@ -31,6 +31,21 @@ while ($produto = $resultado_validade->fetch_assoc()) {
     $produtos_validade[] = $produto;
 }
 
+// promoções ativas (apenas admin e gerente)
+
+$promocoes_ativas = [];
+if (in_array($_SESSION['perfil'], ['admin', 'gerente'])) {
+    $sql_promocoes = "SELECT p.*, pr.nome_produto, c.nome as nome_categoria 
+                      FROM promocoes p 
+                      LEFT JOIN produtos pr ON p.produto_id = pr.id 
+                      LEFT JOIN categorias c ON p.categoria_id = c.id 
+                      WHERE p.ativa = 1 AND CURDATE() BETWEEN p.data_inicio AND p.data_fim";
+    $resultado_promocoes = $conexao->query($sql_promocoes);
+    while ($row = $resultado_promocoes->fetch_assoc()) {
+        $promocoes_ativas[] = $row;
+    }
+}
+
 //query para produtos com estoque baixo
 
 $sql_estoque_baixo = "SELECT nome_produto, quantidade, estoque_minimo FROM produtos WHERE quantidade < estoque_minimo";
@@ -67,6 +82,9 @@ $conexao->close();
                 <a href="desperdicio.php">Desperdício</a>
             <?php endif; ?>
             <?php if ($_SESSION['perfil'] === 'admin'): ?>
+                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
+                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
+                <a href="editar_promocao.php">Editar Promoções</a>
                 <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
                 <a href="ver_logs.php">Ver Logs</a>
             <?php endif; ?>
@@ -82,6 +100,31 @@ $conexao->close();
                 <p>Vendas Hoje: R$ <?php echo number_format($dados_vendas['total_vendas'] ?? 0, 2, ',', '.'); ?></p>
             <?php endif; ?>
         </div>
+        <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente']) && !empty($promocoes_ativas)): ?>
+            <div class="alertas-promocoes">
+                <h3>Promoções Ativas</h3>
+                <ul>
+                    <?php foreach ($promocoes_ativas as $promocao): ?>
+                        <li>
+                            <?php echo htmlspecialchars($promocao['nome']); ?>: 
+                            <?php 
+                                if ($promocao['tipo'] === 'percentual') {
+                                    echo "Desconto de {$promocao['valor']}%";
+                                } else {
+                                    echo "Leve {$promocao['valor']}, Pague " . ($promocao['valor'] - 1);
+                                }
+                                if ($promocao['nome_produto']) {
+                                    echo " em " . htmlspecialchars($promocao['nome_produto']);
+                                } elseif ($promocao['nome_categoria']) {
+                                    echo " na categoria " . htmlspecialchars($promocao['nome_categoria']);
+                                }
+                                echo " (até " . date('d/m/Y', strtotime($promocao['data_fim'])) . ")";
+                            ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
         <?php if (!empty($produtos_baixo)): ?>
             <div class="alertas-estoque">
                 <h3>Alertas de Estoque Baixo</h3>

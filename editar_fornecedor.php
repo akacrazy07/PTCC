@@ -1,18 +1,19 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || $_SESSION['perfil'] !== 'admin') {
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || !in_array($_SESSION['perfil'], ['admin', 'gerente'])) {
     header("Location: login.html");
     exit();
 }
 require_once 'conexao.php';
 
-// Buscar logs com informações do usuário
-$sql = "SELECT l.id, l.usuario_id, u.usuario, l.acao, l.data_acao 
-        FROM logs l 
-        LEFT JOIN usuarios u ON l.usuario_id = u.id 
-        ORDER BY l.data_acao DESC";
-$resultado = $conexao->query($sql);
-$logs = $resultado->fetch_all(MYSQLI_ASSOC);
+$id = $_GET['id'];
+$sql = "SELECT * FROM fornecedores WHERE id = ?";
+$stmt = $conexao->prepare($sql);
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$resultado = $stmt->get_result();
+$fornecedor = $resultado->fetch_assoc();
+$stmt->close();
 
 $conexao->close();
 ?>
@@ -22,7 +23,7 @@ $conexao->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logs de Ações - Panificadora</title>
+    <title>Editar Fornecedor - Panificadora</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -43,7 +44,6 @@ $conexao->close();
             <?php endif; ?>
             <?php if ($_SESSION['perfil'] === 'admin'): ?>
                 <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="editar_fornecedor.php">Editar Fornecedores</a>
                 <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
                 <a href="editar_promocao.php">Editar Promoções</a>
                 <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
@@ -53,31 +53,20 @@ $conexao->close();
         </nav>
     </header>
     <div class="container">
-        <h2>Logs de Ações</h2>
-        <?php if (empty($logs)): ?>
-            <p>Nenhum log registrado ainda.</p>
-        <?php else: ?>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Usuário</th>
-                        <th>Ação</th>
-                        <th>Data e Hora</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($logs as $log): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($log['id']); ?></td>
-                            <td><?php echo htmlspecialchars($log['usuario'] ?? 'Usuário Desconhecido'); ?></td>
-                            <td><?php echo htmlspecialchars($log['acao']); ?></td>
-                            <td><?php echo date('d/m/Y H:i:s', strtotime($log['data_acao'])); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
+        <h2>Editar Fornecedor</h2>
+        <form method="POST" action="gerenciar_fornecedores.php">
+            <input type="hidden" name="id" value="<?php echo $fornecedor['id']; ?>">
+            <label for="nome">Nome do Fornecedor:</label>
+            <input type="text" name="nome" value="<?php echo htmlspecialchars($fornecedor['nome']); ?>" required><br>
+
+            <label for="contato">Contato:</label>
+            <input type="text" name="contato" value="<?php echo htmlspecialchars($fornecedor['contato']); ?>" required><br>
+
+            <label for="endereco">Endereço (opcional):</label>
+            <textarea name="endereco"><?php echo htmlspecialchars($fornecedor['endereco'] ?? ''); ?></textarea><br>
+
+            <button type="submit">Salvar Alterações</button>
+        </form>
     </div>
 </body>
 </html>
