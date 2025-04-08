@@ -18,6 +18,33 @@ USE `panificadora_db`;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `backups`
+--
+
+DROP TABLE IF EXISTS `backups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `backups` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `data_backup` datetime NOT NULL,
+  `caminho_arquivo` varchar(255) NOT NULL,
+  `usuario_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `usuario_id` (`usuario_id`),
+  CONSTRAINT `backups_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `backups`
+--
+
+LOCK TABLES `backups` WRITE;
+/*!40000 ALTER TABLE `backups` DISABLE KEYS */;
+/*!40000 ALTER TABLE `backups` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `categorias`
 --
 
@@ -91,6 +118,35 @@ CREATE TABLE `fornecedores` (
 LOCK TABLES `fornecedores` WRITE;
 /*!40000 ALTER TABLE `fornecedores` DISABLE KEYS */;
 /*!40000 ALTER TABLE `fornecedores` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `log_exportacoes`
+--
+
+DROP TABLE IF EXISTS `log_exportacoes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `log_exportacoes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` int(11) NOT NULL,
+  `tipo_dados` varchar(50) NOT NULL,
+  `formato` varchar(10) NOT NULL,
+  `data_exportacao` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `usuario_id` (`usuario_id`),
+  CONSTRAINT `log_exportacoes_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `log_exportacoes`
+--
+
+LOCK TABLES `log_exportacoes` WRITE;
+/*!40000 ALTER TABLE `log_exportacoes` DISABLE KEYS */;
+INSERT INTO `log_exportacoes` VALUES (1,1,'vendas','csv','2025-04-08 00:18:50');
+/*!40000 ALTER TABLE `log_exportacoes` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -175,8 +231,9 @@ CREATE TABLE `promocoes` (
   `data_fim` date NOT NULL,
   `ativa` tinyint(1) DEFAULT 1,
   PRIMARY KEY (`id`),
-  KEY `produto_id` (`produto_id`),
   KEY `categoria_id` (`categoria_id`),
+  KEY `fk_promocoes_produto` (`produto_id`),
+  CONSTRAINT `fk_promocoes_produto` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`) ON DELETE CASCADE,
   CONSTRAINT `promocoes_ibfk_1` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`) ON DELETE SET NULL,
   CONSTRAINT `promocoes_ibfk_2` FOREIGN KEY (`categoria_id`) REFERENCES `categorias` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -229,6 +286,7 @@ CREATE TABLE `usuarios` (
   `email` varchar(100) DEFAULT NULL,
   `perfil` enum('admin','gerente','vendedor') NOT NULL DEFAULT 'vendedor',
   `senha` varchar(255) NOT NULL,
+  `nome` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `usuario` (`usuario`),
   UNIQUE KEY `cpf` (`cpf`),
@@ -242,7 +300,7 @@ CREATE TABLE `usuarios` (
 
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
-INSERT INTO `usuarios` VALUES (1,'admin','123.456.789-00','admin@padaria.com','admin','$2y$10$cLZegIJV.SUQdyF.5LFgO.q5NzB5gMTxcC7o0MCYS4i/ISZjNowYG'),(4,'eduardo ','666.777.888-99','eduardojsr.akcr@gmail.com','gerente','$2y$10$0DvyZ0TW8MmB7bDDIj2L2.mZxkJW/lUaqQNKk25IVS1n0S46N/h3y'),(5,'marcus','999.888.777-66','mkdanorte@gmail.com','vendedor','$2y$10$HRmp6sdLup0M0Q3GjCL68u94nhou0OHwFtWVmGXuE22oXRqnEmBeW');
+INSERT INTO `usuarios` VALUES (1,'admin','123.456.789-00','admin@padaria.com','admin','$2y$10$cLZegIJV.SUQdyF.5LFgO.q5NzB5gMTxcC7o0MCYS4i/ISZjNowYG',''),(4,'eduardo ','666.777.888-99','eduardojsr.akcr@gmail.com','gerente','$2y$10$0DvyZ0TW8MmB7bDDIj2L2.mZxkJW/lUaqQNKk25IVS1n0S46N/h3y',''),(5,'marcus','999.888.777-66','mkdanorte@gmail.com','vendedor','$2y$10$HRmp6sdLup0M0Q3GjCL68u94nhou0OHwFtWVmGXuE22oXRqnEmBeW','');
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -284,4 +342,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-04-02 23:36:56
+-- Dump completed on 2025-04-08  0:31:18

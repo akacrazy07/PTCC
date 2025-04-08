@@ -10,7 +10,6 @@ $mensagem_venda = '';
 $produtos_estoque = [];
 
 // carregar promoções ativas
-
 $promocoes = [];
 $sql_promocoes = "SELECT * FROM promocoes WHERE data_inicio <= CURDATE() AND data_fim >= CURDATE()";
 $resultado_promocoes = $conexao->query($sql_promocoes);
@@ -68,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['produtos_vendidos']) &
                             $desconto_aplicado += ($quantidade_vendida - $quantidade_paga) * $preco_unitario;
                             $promocao_aplicada = "Leve " . ($pague + 1) . ", Pague $pague";
                         }
+                        break; // sai do loop após encontrar a promoção para o produto
                     }
                     $desconto_total += $desconto_aplicado;
                 //registrar a venda com o preço com desconto
@@ -122,6 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['produtos_vendidos']) &
 }
 $conexao->close();
 ?>
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -145,13 +146,14 @@ $conexao->close();
                 <a href="relatorios.php">Relatórios</a>
                 <a href="receitas.php">Receitas</a>
                 <a href="desperdicio.php">Desperdício</a>
+                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
             <?php endif; ?>
             <?php if ($_SESSION['perfil'] === 'admin'): ?>
                 <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-                <a href="editar_promocao.php">Editar Promoções</a>
                 <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
                 <a href="ver_logs.php">Ver Logs</a>
+                <a href="exportar_dados.php">Exportar Dados</a>
+                <a href="gerenciar_backups.php">Gerenciar Backups</a>
             <?php endif; ?>
             <a href="logout.php">Sair</a>
         </nav>
