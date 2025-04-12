@@ -6,85 +6,55 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true 
 }
 require_once 'conexao.php';
 
-// configurações do backup
+// Diretório para salvar os backups
 $backup_dir = 'backups/';
 if (!is_dir($backup_dir)) {
-    mkdir($backup_dir, 0755, true);
+    if (!mkdir($backup_dir, 0777, true)) {
+        die("Erro: Não foi possível criar o diretório 'backups/'. Verifique as permissões.");
+    }
 }
-$db_host = 'localhost'; // endereço do servidor de banco de dados
-$db_user = 'root'; // usuário do banco de dados
-$db_pass = ''; // senha do banco de dados, se houver
-$db_name = 'panificadora_db'; // nome da database
 
-// função pra realizar o backup
-function realizarBackup($conexao, $backup_dir, $db_host, $db_user, $db_pass, $db_name, $usuario_id = null) {
-    $data = date('Y-m-d_H-i-s');
-    $arquivo = $backup_dir . "backup_$data.sql";
+// Caminho completo para mysqldump e mysql (ajuste conforme o caminho no seu XAMPP)
+$mysqldump_path = '"C:\xampp\mysql\bin\mysqldump.exe"'; // No Windows, use aspas e o caminho completo
+$mysql_path = '"C:\xampp\mysql\bin\mysql.exe"';
 
-    // comando mysqldump pra gerar o backup
-    $comando = "mysqldump --host=$db_host --user=$db_user --password=$db_pass $db_name > $arquivo";
-    exec($comando, $output, $return_var);
+// Realizar backup
+if (isset($_POST['realizar_backup'])) {
+    $backup_file = $backup_dir . 'backup_' . date('Y-m-d_H-i-s') . '.sql';
+    // Escapar a senha para evitar problemas com caracteres especiais
+    $db_senha_escaped = str_replace('"', '\\"', $db_senha);
+    $command = "$mysqldump_path --host=$db_host --user=$db_usuario --password=\"$db_senha_escaped\" --databases $db_nome > \"$backup_file\" 2>&1";
+    exec($command, $output, $return_var);
 
     if ($return_var === 0) {
-        // backup bem-sucedido, registrar no banco
-        $sql = "INSERT INTO backups (data_backup, caminho_arquivo, usuario_id) VALUES (NOW(), ?, ?)";
-        $stmt = $conexao->prepare($sql);
-        $stmt->bind_param("si", $arquivo, $usuario_id);
-        $stmt->execute();
-        $stmt->close();
-        return true;
+        $mensagem = "Backup realizado com sucesso! Arquivo: " . basename($backup_file);
     } else {
-        return false;
+        $mensagem = "Erro ao realizar o backup. Detalhes: " . implode("\n", $output);
     }
 }
 
-// fazer backup manual
-if (isset($_POST['fazer_backup'])) {
-    if (realizarBackup($conexao, $backup_dir, $db_host, $db_user, $db_pass, $db_name, $_SESSION['usuario_id'])) {
-        header("Location: gerenciar_backups.php?sucesso=1");
+// Restaurar backup
+if (isset($_POST['restaurar_backup'])) {
+    $backup_file = $_POST['backup_file'];
+    // Verificar se o arquivo existe
+    if (!file_exists($backup_file)) {
+        $mensagem = "Erro: O arquivo de backup não existe.";
     } else {
-        header("Location: gerenciar_backups.php?erro=1");
+        // Escapar a senha para evitar problemas com caracteres especiais
+        $db_senha_escaped = str_replace('"', '\\"', $db_senha);
+        $command = "$mysql_path --host=$db_host --user=$db_usuario --password=\"$db_senha_escaped\" $db_nome < \"$backup_file\" 2>&1";
+        exec($command, $output, $return_var);
+
+        if ($return_var === 0) {
+            $mensagem = "Backup restaurado com sucesso!";
+        } else {
+            $mensagem = "Erro ao restaurar o backup. Detalhes: " . implode("\n", $output);
+        }
     }
-    exit();
 }
 
-// excluir backup
-if (isset($_GET['excluir'])) {
-    $id = $_GET['excluir'];
-    $sql = "SELECT caminho_arquivo FROM backups WHERE id = ?";
-    $stmt = $conexao->prepare($sql);
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $resultado = $stmt->get_result();
-    $backup = $resultado->fetch_assoc();
-    $stmt->close();
-
-    if ($backup && file_exists($backup['caminho_arquivo'])) {
-        unlink($backup['caminho_arquivo']);
-    }
-
-    $sql = "DELETE FROM backups WHERE id = ?";
-    $stmt = $conexao->prepare($sql);
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
-
-    header("Location: gerenciar_backups.php");
-    exit();
-}
-
-// listar backups
-$sql_backups = "SELECT b.*, u.nome as nome_usuario 
-                FROM backups b 
-                LEFT JOIN usuarios u ON b.usuario_id = u.id 
-                ORDER BY b.data_backup DESC";
-$resultado_backups = $conexao->query($sql_backups);
-$backups = [];
-while ($row = $resultado_backups->fetch_assoc()) {
-    $backups[] = $row;
-}
-
-$conexao->close();
+// Listar backups
+$backups = glob($backup_dir . '*.sql');
 ?>
 
 <!DOCTYPE html>
@@ -124,50 +94,40 @@ $conexao->close();
     </header>
     <div class="container">
         <h2>Gerenciar Backups</h2>
-        <?php if (isset($_GET['sucesso'])): ?>
-            <p style="color: green;">Backup realizado com sucesso!</p>
-        <?php endif; ?>
-        <?php if (isset($_GET['erro'])): ?>
-            <p style="color: red;">Erro ao realizar o backup. Verifique as configurações do servidor.</p>
+        <?php if (isset($mensagem)): ?>
+            <p><?php echo htmlspecialchars($mensagem); ?></p>
         <?php endif; ?>
 
-        <!-- fazer backup manual -->
+        <!-- Formulário para realizar backup -->
+        <h3>Realizar Backup</h3>
         <form method="POST" action="gerenciar_backups.php">
-            <button type="submit" name="fazer_backup">Fazer Backup Manual</button>
+            <button type="submit" name="realizar_backup">Realizar Backup Agora</button>
         </form>
 
-        <!-- listar backups -->
-        <h3>Backups Realizados</h3>
-        <table border="1">
-            <thead>
-                <tr>
-                    <th>Data do Backup</th>
-                    <th>Realizado por</th>
-                    <th>Arquivo</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($backups)): ?>
-                    <?php foreach ($backups as $backup): ?>
-                        <tr>
-                            <td><?php echo date('d/m/Y H:i:s', strtotime($backup['data_backup'])); ?></td>
-                            <td><?php echo $backup['nome_usuario'] ?? 'Automático'; ?></td>
-                            <td><?php echo basename($backup['caminho_arquivo']); ?></td>
-                            <td>
-                                <a href="<?php echo $backup['caminho_arquivo']; ?>" download>Baixar</a> |
-                                <a href="gerenciar_backups.php?excluir=<?php echo $backup['id']; ?>" 
-                                   onclick="return confirm('Tem certeza que deseja excluir este backup?')">Excluir</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="4">Nenhum backup realizado.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+        <!-- Formulário para restaurar backup -->
+        <h3>Restaurar Backup</h3>
+        <form method="POST" action="gerenciar_backups.php">
+            <label for="backup_file">Selecione o Backup:</label>
+            <select name="backup_file" required>
+                <option value="">Selecione um arquivo</option>
+                <?php foreach ($backups as $backup): ?>
+                    <option value="<?php echo $backup; ?>"><?php echo basename($backup); ?></option>
+                <?php endforeach; ?>
+            </select><br>
+            <button type="submit" name="restaurar_backup">Restaurar Backup</button>
+        </form>
+
+        <!-- Listar backups -->
+        <h3>Backups Disponíveis</h3>
+        <ul>
+            <?php if (!empty($backups)): ?>
+                <?php foreach ($backups as $backup): ?>
+                    <li><?php echo basename($backup); ?> (<?php echo date('d/m/Y H:i:s', filemtime($backup)); ?>)</li>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <li>Nenhum backup disponível.</li>
+            <?php endif; ?>
+        </ul>
     </div>
 </body>
 </html>
