@@ -192,3 +192,36 @@ tr:hover {
 .backup-item:last-child {
     border-bottom: none;
 }
+.search-section {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.search-section h3 {
+    margin-top: 0;
+}
+.search-section label {
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+.search-section input, .search-section select {
+    margin-right: 20px;
+    margin-bottom: 10px;
+    padding: 5px;
+}
+.result-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+.result-table th, .result-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+.result-table th {
+    background-color: #f2f2f2;
+}
