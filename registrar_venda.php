@@ -107,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['finalizar_venda'])) {
 $conexao->close();
 ?>
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
