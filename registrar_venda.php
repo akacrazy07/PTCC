@@ -21,7 +21,7 @@ while ($row = $resultado_promocoes->fetch_assoc()) {
     $promocoes[$row['produto_id']] = $row['valor'];
 }
 
-// Registrar venda
+// Registrar vendas
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['finalizar_venda'])) {
     $itens_venda = json_decode($_POST['itens_venda'], true);
     $desconto_manual = floatval($_POST['desconto_manual']);
