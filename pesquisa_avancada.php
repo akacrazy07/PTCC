@@ -183,17 +183,6 @@ if (isset($_POST['pesquisar_desperdicio'])) {
         $params[] = $produto_id;
         $types .= 'i';
     }
-    if ($motivo) {
-        $sql .= " AND d.motivo LIKE ?";
-        $params[] = "%$motivo%";
-        $types .= 's';
-    }
-    if ($usuario_id) {
-        $sql .= " AND d.usuario_id = ?";
-        $params[] = $usuario_id;
-        $types .= 'i';
-    }
-
     $stmt = $conexao->prepare($sql);
     if (!empty($params)) {
         $stmt->bind_param($types, ...$params);
@@ -410,21 +399,7 @@ $conexao->close();
                             <?php echo htmlspecialchars($produto['nome_produto']); ?>
                         </option>
                     <?php endforeach; ?>
-                </select>
-
-                <label for="motivo">Motivo:</label>
-                <input type="text" name="motivo" value="<?php echo isset($_POST['motivo']) ? htmlspecialchars($_POST['motivo']) : ''; ?>">
-
-                <label for="usuario_id">Usuário:</label>
-                <select name="usuario_id">
-                    <option value="">Todos</option>
-                    <?php foreach ($usuarios as $usuario): ?>
-                        <option value="<?php echo $usuario['id']; ?>" <?php echo (isset($_POST['usuario_id']) && $_POST['usuario_id'] == $usuario['id']) ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($usuario['nome']); ?>
-                        </option>
-                    <?php endforeach; ?>
                 </select><br>
-
                 <button type="submit" name="pesquisar_desperdicio">Pesquisar</button>
                 <button type="button" onclick="window.location.href='pesquisa_avancada.php'">Limpar Filtros</button>
             </form>
@@ -436,7 +411,6 @@ $conexao->close();
                             <th>Data do Desperdício</th>
                             <th>Produto</th>
                             <th>Quantidade</th>
-                            <th>Motivo</th>
                             <th>Usuário</th>
                         </tr>
                     </thead>
@@ -446,8 +420,6 @@ $conexao->close();
                                 <td><?php echo date('d/m/Y', strtotime($desperdicio['data_desperdicio'])); ?></td>
                                 <td><?php echo htmlspecialchars($desperdicio['nome_produto']); ?></td>
                                 <td><?php echo htmlspecialchars($desperdicio['quantidade']); ?></td>
-                                <td><?php echo htmlspecialchars($desperdicio['motivo']); ?></td>
-                                <td><?php echo htmlspecialchars($desperdicio['nome_usuario'] ?? 'Desconhecido'); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

@@ -54,7 +54,7 @@ $conexao->close();
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Rastreamento de desperdiico </title>
+        <title>Rastreamento de desperdico </title>
         <link rel="stylesheet" href="style.css">
     </head>
 </html>
