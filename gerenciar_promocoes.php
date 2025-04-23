@@ -6,22 +6,22 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true 
 }
 require_once 'conexao.php';
 
-// listar produtos para formulário
-$sql_produtos = "SELECT id, nome_produtos FROM produtos";
+// Listar produtos pra formulário
+$sql_produtos = "SELECT id, nome_produto FROM produtos";
 $resultado_produtos = $conexao->query($sql_produtos);
 $produtos = $resultado_produtos->fetch_all(MYSQLI_ASSOC);
 
-// cadastrar ou atualizar promoção
+// Cadastrar ou atualizar promoção
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = $_POST['nome'];
     $tipo = $_POST['tipo'];
     $valor = $_POST['valor'];
     $data_inicio = $_POST['data_inicio'];
     $data_fim = $_POST['data_fim'];
-    $produto_id = $_POST['$produto_id'];
+    $produto_id = $_POST['produto_id'];
     $id = !empty($_POST['id']) ? $_POST['id'] : null;
 
-    // validar datas
+    // Validar datas
     if (empty($data_inicio) || empty($data_fim)) {
         header("Location: gerenciar_promocoes.php?erro=data_vazia");
         exit();
@@ -34,18 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: gerenciar_promocoes.php?erro=data_inicio_maior");
         exit();
     }
-    // validar produto
     if (empty($produto_id)) {
         header("Location: gerenciar_promocoes.php?erro=produto_nao_selecionado");
         exit();
     }
+
     if ($id) {
-        // atualizar promoção existente
+        // Atualizar promoção existente
         $sql = "UPDATE promocoes SET nome = ?, tipo = ?, valor = ?, data_inicio = ?, data_fim = ?, produto_id = ? WHERE id = ?";
         $stmt = $conexao->prepare($sql);
         $stmt->bind_param("ssdssii", $nome, $tipo, $valor, $data_inicio, $data_fim, $produto_id, $id);
     } else {
-        // cadastrar nova promoção
+        // Cadastrar nova promoção
         $sql = "INSERT INTO promocoes (nome, tipo, valor, data_inicio, data_fim, produto_id) VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $conexao->prepare($sql);
         $stmt->bind_param("ssdssi", $nome, $tipo, $valor, $data_inicio, $data_fim, $produto_id);
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 
-// excluir promoção
+// Excluir promoção
 if (isset($_GET['excluir'])) {
     $id = $_GET['excluir'];
     $sql = "DELETE FROM promocoes WHERE id = ?";
@@ -71,8 +71,10 @@ if (isset($_GET['excluir'])) {
     exit();
 }
 
-// listar promoções
-$sql_promocoes = "SELECT * FROM promocoes";
+// Listar promoções
+$sql_promocoes = "SELECT p.*, pr.nome_produto 
+                  FROM promocoes p 
+                  JOIN produtos pr ON p.produto_id = pr.id";
 $resultado_promocoes = $conexao->query($sql_promocoes);
 $promocoes = [];
 while ($row = $resultado_promocoes->fetch_assoc()) {
@@ -106,12 +108,12 @@ $conexao->close();
                 <a href="receitas.php">Receitas</a>
                 <a href="desperdicio.php">Desperdício</a>
                 <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="exportar_dados.php">Exportar Dados</a>
             <?php endif; ?>
             <?php if ($_SESSION['perfil'] === 'admin'): ?>
+                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
                 <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
                 <a href="ver_logs.php">Ver Logs</a>
+                <a href="exportar_dados.php">Exportar Dados</a>
                 <a href="gerenciar_backups.php">Gerenciar Backups</a>
             <?php endif; ?>
             <a href="logout.php">Sair</a>
@@ -139,7 +141,7 @@ $conexao->close();
             <input type="hidden" name="id" value="">
             <label for="nome">Nome da Promoção:</label>
             <input type="text" name="nome" required><br>
-            
+
             <label for="produto_id">Produto:</label>
             <select name="produto_id" required>
                 <option value="">Selecione um produto</option>

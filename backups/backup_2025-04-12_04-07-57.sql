@@ -1,15 +1,13 @@
-CREATE DATABASE  IF NOT EXISTS `panificadora_db` /*!40100 DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci */;
-USE `panificadora_db`;
--- MySQL dump 10.13  Distrib 8.0.41, for Win64 (x86_64)
+-- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
 --
 -- Host: localhost    Database: panificadora_db
 -- ------------------------------------------------------
--- Server version	5.5.5-10.4.32-MariaDB
+-- Server version	10.4.32-MariaDB
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8 */;
+/*!40101 SET NAMES utf8mb4 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
@@ -18,12 +16,20 @@ USE `panificadora_db`;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Current Database: `panificadora_db`
+--
+
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `panificadora_db` /*!40100 DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci */;
+
+USE `panificadora_db`;
+
+--
 -- Table structure for table `backups`
 --
 
 DROP TABLE IF EXISTS `backups`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `backups` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `data_backup` datetime NOT NULL,
@@ -50,7 +56,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `categorias`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `categorias` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(50) NOT NULL,
@@ -74,7 +80,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `desperdicio`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `desperdicio` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `produto_id` int(11) NOT NULL,
@@ -101,7 +107,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `fornecedores`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `fornecedores` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(100) NOT NULL,
@@ -126,7 +132,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `log_exportacoes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `log_exportacoes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `usuario_id` int(11) NOT NULL,
@@ -155,7 +161,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `usuario_id` int(11) NOT NULL,
@@ -183,7 +189,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `produtos`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `produtos` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome_produto` varchar(100) NOT NULL,
@@ -219,7 +225,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `promocoes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `promocoes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(100) NOT NULL,
@@ -254,7 +260,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `receitas`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `receitas` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(100) NOT NULL,
@@ -278,7 +284,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `usuarios`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `usuarios` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `usuario` varchar(50) NOT NULL,
@@ -310,7 +316,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `vendas`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `vendas` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `produto_id` int(11) NOT NULL,
@@ -342,4 +348,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-04-14 22:46:49
+-- Dump completed on 2025-04-11 23:08:00

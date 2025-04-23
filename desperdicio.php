@@ -54,7 +54,7 @@ $conexao->close();
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Rastreamento de desperdiico </title>
+        <title>Rastreamento de desperdico </title>
         <link rel="stylesheet" href="style.css">
     </head>
 </html>
@@ -73,13 +73,14 @@ $conexao->close();
                 <a href="relatorios.php">Relatórios</a>
                 <a href="receitas.php">Receitas</a>
                 <a href="desperdicio.php">Desperdício</a>
+                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
             <?php endif; ?>
             <?php if ($_SESSION['perfil'] === 'admin'): ?>
                 <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-                <a href="editar_promocao.php">Editar Promoções</a>
                 <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
                 <a href="ver_logs.php">Ver Logs</a>
+                <a href="exportar_dados.php">Exportar Dados</a>
+                <a href="gerenciar_backups.php">Gerenciar Backups</a>
             <?php endif; ?>
             <a href="logout.php">Sair</a>
         </nav>

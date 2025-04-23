@@ -177,3 +177,85 @@ tr:hover {
 .alertas-backup h3 {
     color: #856404;
 }
+.backup-list {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    max-width: 600px;
+    margin: 0 auto 20px;
+}
+.backup-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+.backup-item:last-child {
+    border-bottom: none;
+}
+.search-section {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.search-section h3 {
+    margin-top: 0;
+}
+.search-section label {
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+.search-section input, .search-section select {
+    margin-right: 20px;
+    margin-bottom: 10px;
+    padding: 5px;
+}
+.result-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+.result-table th, .result-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+.result-table th {
+    background-color: #f2f2f2;
+}
+.calculator-section {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.calculator-section label {
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+.calculator-section select, .calculator-section input {
+    margin-right: 20px;
+    margin-bottom: 10px;
+    padding: 5px;
+}
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+.items-table th, .items-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+.items-table th {
+    background-color: #f2f2f2;
+}
+.total-section {
+    margin-top: 20px;
+    font-size: 1.1em;
+}

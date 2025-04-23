@@ -7,108 +7,91 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true)
 require_once 'conexao.php';
 
 $mensagem_venda = '';
-$produtos_estoque = [];
 
-// carregar promoções ativas
+// Carregar produtos
+$sql_produtos = "SELECT id, nome_produto, preco, quantidade, estoque_minimo FROM produtos WHERE quantidade > 0";
+$resultado_produtos = $conexao->query($sql_produtos);
+$produtos = $resultado_produtos->fetch_all(MYSQLI_ASSOC);
 
-$promocoes = [];
-$sql_promocoes = "SELECT * FROM promocoes WHERE data_inicio <= CURDATE() AND data_fim >= CURDATE()";
+// Carregar promoções ativas
+$sql_promocoes = "SELECT * FROM promocoes WHERE data_inicio <= NOW() AND data_fim >= NOW() AND ativa = 1 AND tipo = 'percentual'";
 $resultado_promocoes = $conexao->query($sql_promocoes);
-while ($promocao = $resultado_promocoes->fetch_assoc()) {
-    $promocoes[] = $promocao;
+$promocoes = [];
+while ($row = $resultado_promocoes->fetch_assoc()) {
+    $promocoes[$row['produto_id']] = $row['valor'];
 }
 
-// carregar produtos em estoque
-$stmt = $conexao->prepare ("SELECT id, nome_produto, preco, quantidade, estoque_minimo FROM produtos WHERE quantidade > 0");
-$stmt->execute();
-$resultado_produtos = $stmt->get_result();
-while ($produto = $resultado_produtos->fetch_assoc()) {
-    $produtos_estoque[] = $produto;
-}
-$stmt->close();
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['produtos_vendidos']) && isset($_POST['selecionar_produto'])) {
-    $produtos_vendidos = $_POST['produtos_vendidos'];
-    $selecionados = $_POST['selecionar_produto'];
+// Registrar venda
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['finalizar_venda'])) {
+    $itens_venda = json_decode($_POST['itens_venda'], true);
+    $desconto_manual = floatval($_POST['desconto_manual']);
     $lucro_total = 0;
     $desconto_total = 0;
     $erro = false;
-    $log_acoes = []; // array para armazenar as ações realizadas
+    $log_acoes = [];
 
-    foreach ($produtos_vendidos as $produto_id =>$quantidade_vendida) {
-        $produto_id = intval($produto_id);
-        $quantidade_vendida = intval($quantidade_vendida);
-        // verifica se o produto foi selecionado e se a quantidade vendida é maior que zero
-        if (isset($selecionados[$produto_id]) && $quantidade_vendida > 0) {
-            $stmt = $conexao->prepare("SELECT preco, quantidade, nome_produto, estoque_minimo FROM produtos WHERE id = ?");
-            $stmt->bind_param('i', $produto_id);
-            $stmt->execute();
-            $resultado_produto = $stmt->get_result();
-            if ($produto = $resultado_produto->fetch_assoc()) {
-                $preco_unitario = $produto['preco'];
-                $estoque_atual = $produto['quantidade'];
-                $estoque_minimo = $produto['estoque_minimo'];
-                if ($quantidade_vendida <= $estoque_atual) {
-                    // calcula o preço com desconto se houver promoção
-                    $preco_com_desconto = $preco_unitario;
-                    $desconto_aplicado = 0;
-                    $promocao_aplicada = '';
-                    foreach ($promocoes as $promocao) {
-                        if ($promocao['tipo'] === 'percentual') {
-                            $desconto = $preco_unitario * ($promocao['valor'] / 100);
-                            $preco_com_desconto = $preco_unitario - $desconto;
-                            $desconto_aplicado += $desconto * $quantidade_vendida;
-                            $promocao_aplicada = "Desconto de {$promocao['valor']}%";
-                        } elseif ($promocao['tipo'] === 'leve_pague') {
-                            $leve = $promocao['valor'] + 1; // exemplo: Leve 3, Pague 2 -> leve = 3
-                            $pague = $promocao['valor']; // exemplo: Leve 3, Pague 2 -> pague = 2
-                            $grupos = floor($quantidade_vendida / $leve);
-                            $quantidade_paga = ($grupos * $pague) + ($quantidade_vendida % $leve);
-                            $preco_com_desconto = ($quantidade_paga / $quantidade_vendida) * $preco_unitario;
-                            $desconto_aplicado += ($quantidade_vendida - $quantidade_paga) * $preco_unitario;
-                            $promocao_aplicada = "Leve " . ($pague + 1) . ", Pague $pague";
+    foreach ($itens_venda as $item) {
+        $produto_id = intval($item['id']);
+        $quantidade_vendida = intval($item['quantidade']);
+        $preco_unitario = floatval($item['precoUnitario']);
+        $desconto_promocao = floatval($item['descontoPromocao']);
+
+        // Verificar estoque
+        $stmt = $conexao->prepare("SELECT preco, quantidade, nome_produto, estoque_minimo FROM produtos WHERE id = ?");
+        $stmt->bind_param('i', $produto_id);
+        $stmt->execute();
+        $resultado_produto = $stmt->get_result();
+        if ($produto = $resultado_produto->fetch_assoc()) {
+            $estoque_atual = $produto['quantidade'];
+            $estoque_minimo = $produto['estoque_minimo'];
+            if ($quantidade_vendida <= $estoque_atual) {
+                // Calcular preço com desconto (promoção + manual)
+                $preco_com_desconto = $preco_unitario * (1 - $desconto_promocao / 100);
+                $subtotal = $preco_com_desconto * $quantidade_vendida;
+                $desconto_manual_valor = $subtotal * ($desconto_manual / 100);
+                $preco_final = $preco_com_desconto * (1 - $desconto_manual / 100);
+                $desconto_total += ($preco_com_desconto - $preco_final) * $quantidade_vendida;
+
+                // Registrar a venda
+                $stmt_venda = $conexao->prepare("INSERT INTO vendas (produto_id, quantidade_vendida, preco_unitario_venda) VALUES (?, ?, ?)");
+                $stmt_venda->bind_param('iid', $produto_id, $quantidade_vendida, $preco_final);
+                if ($stmt_venda->execute()) {
+                    $novo_estoque = $estoque_atual - $quantidade_vendida;
+                    $stmt_update = $conexao->prepare("UPDATE produtos SET quantidade = ? WHERE id = ?");
+                    $stmt_update->bind_param('ii', $novo_estoque, $produto_id);
+                    if ($stmt_update->execute()) {
+                        $lucro_total += $preco_final * $quantidade_vendida;
+                        $promocao_aplicada = $desconto_promocao > 0 ? " com Desconto de {$desconto_promocao}%" : '';
+                        $log_acoes[] = "Registrou venda de $quantidade_vendida unidade(s) de '{$produto['nome_produto']}'" . $promocao_aplicada;
+                        if ($novo_estoque < $estoque_minimo) {
+                            $mensagem_venda .= "Alerta: Estoque de " . htmlspecialchars($produto['nome_produto']) . " está abaixo do mínimo ($novo_estoque < $estoque_minimo)! ";
                         }
-                    }
-                    $desconto_total += $desconto_aplicado;
-                //registrar a venda com o preço com desconto
-                    $stmt_venda = $conexao->prepare("INSERT INTO vendas (produto_id, quantidade_vendida, preco_unitario_venda) VALUES (?, ?, ?)");
-                    $stmt_venda->bind_param('iid', $produto_id, $quantidade_vendida, $preco_com_desconto);
-                    if ($stmt_venda->execute()) {
-                        $novo_estoque = $estoque_atual - $quantidade_vendida;
-                        $stmt_update = $conexao->prepare("UPDATE produtos SET quantidade = ? WHERE id = ?");
-                        $stmt_update->bind_param('ii', $novo_estoque, $produto_id);
-                        if ($stmt_update->execute()) {
-                            $lucro_total += $preco_com_desconto * $quantidade_vendida;
-                            $log_acoes[] = "Registrou venda de $quantidade_vendida unidade(s) de '{$produto['nome_produto']}'" . ($promocao_aplicada ? "com $promocao_aplicada" : ''); // armazena a ação realizada
-                            if ($novo_estoque < $estoque_minimo) {
-                                $mensagem_venda .= "Alerta: Estoque de" . htmlspecialchars($produto['nome_produto']) . " está abaixo do mínimo ($novo_estoque < $estoque_minimo)! ";
-                            }
-                        } else {
-                         $mensagem_venda = "Erro ao atualizar o estoque do produto ID $produto_id: " . $conexao->error;
-                            $erro = true;
-                            $stmt_update->close();
-                            break;
-                        }
-                        $stmt_update->close();
                     } else {
-                        $mensagem_venda = "Erro ao registrar a venda do produto ID $produto_id: " . $conexao->error;
+                        $mensagem_venda = "Erro ao atualizar o estoque do produto ID $produto_id: " . $conexao->error;
                         $erro = true;
-                        $stmt_venda->close();
+                        $stmt_update->close();
                         break;
                     }
-                    $stmt_venda->close();
+                    $stmt_update->close();
                 } else {
-                    $mensagem_venda = "Estoque insuficiente para o produto:" . htmlspecialchars($produto['nome_produto']);
+                    $mensagem_venda = "Erro ao registrar a venda do produto ID $produto_id: " . $conexao->error;
                     $erro = true;
+                    $stmt_venda->close();
                     break;
                 }
+                $stmt_venda->close();
+            } else {
+                $mensagem_venda = "Estoque insuficiente para o produto: " . htmlspecialchars($produto['nome_produto']);
+                $erro = true;
+                break;
             }
-            $stmt->close();
         }
+        $stmt->close();
     }
+
     if (!$erro && $lucro_total > 0) {
-        $mensagem_venda = "Venda registrada com sucesso. Lucro total: R$ " . number_format($lucro_total, 2, ',', '.') . ( $desconto_total > 0 ? " (Desconto aplicado: R$ " . number_format($desconto_total, 2, ',', '.') . ")" : "");
-        // registra a ação realizada no log
+        $mensagem_venda .= "Venda registrada com sucesso. Lucro total: R$ " . number_format($lucro_total, 2, ',', '.') . ($desconto_total > 0 ? " (Desconto aplicado: R$ " . number_format($desconto_total, 2, ',', '.') . ")" : "");
+        // Registrar logs
         $usuario_id = $_SESSION['usuario_id'];
         foreach ($log_acoes as $acao) {
             $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
@@ -117,11 +100,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['produtos_vendidos']) &
             $stmt_log->close();
         }
     } elseif (!$erro) {
-        $mensagem_venda = "Nenhum produto ou quantidade selecionado para venda.";
+        $mensagem_venda = "Nenhum produto adicionado para venda.";
     }
 }
+
 $conexao->close();
 ?>
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -129,6 +114,42 @@ $conexao->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar Venda - Gestão Panificadora</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .calculator-section {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .calculator-section label {
+            display: inline-block;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .calculator-section select, .calculator-section input {
+            margin-right: 20px;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .items-table th, .items-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .items-table th {
+            background-color: #f2f2f2;
+        }
+        .total-section {
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -145,13 +166,15 @@ $conexao->close();
                 <a href="relatorios.php">Relatórios</a>
                 <a href="receitas.php">Receitas</a>
                 <a href="desperdicio.php">Desperdício</a>
+                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
+                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
+                <a href="exportar_dados.php">Exportar Dados</a>
+                <a href="pesquisa_avancada.php">Pesquisa Avançada</a>
             <?php endif; ?>
             <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-                <a href="editar_promocao.php">Editar Promoções</a>
                 <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
                 <a href="ver_logs.php">Ver Logs</a>
+                <a href="gerenciar_backups.php">Gerenciar Backups</a>
             <?php endif; ?>
             <a href="logout.php">Sair</a>
         </nav>
@@ -161,39 +184,146 @@ $conexao->close();
         <?php if (!empty($mensagem_venda)): ?>
             <p><?php echo $mensagem_venda; ?></p>
         <?php endif; ?>
-        <form action="registrar_venda.php" method="post">
-            <?php if (empty($produtos_estoque)): ?>
-                <p>Nenhum produto em estoque para vender.</p>
-            <?php else: ?>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Produto</th>
-                            <th>Preço Unitário</th>
-                            <th>Estoque Atual</th>
-                            <th>Quantidade Vendida</th>
-                            <th>Selecionar</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($produtos_estoque as $produto): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($produto['nome_produto']); ?></td>
-                                <td>R$ <?php echo number_format($produto['preco'], 2, ',', '.'); ?></td>
-                                <td><?php echo htmlspecialchars($produto['quantidade']); ?></td>
-                                <td>
-                                    <input type="number" name="produtos_vendidos[<?php echo $produto['id']; ?>]" value="0" min="0" max="<?php echo $produto['quantidade']; ?>">
-                                </td>
-                                <td>
-                                    <input type="checkbox" name="selecionar_produto[<?php echo $produto['id']; ?>]" value="1">
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-                <button type="submit">Registrar Venda</button>
-            <?php endif; ?>
-        </form>
+
+        <div class="calculator-section">
+            <h3>Adicionar Produtos</h3>
+            <div>
+                <label for="produto_id">Produto:</label>
+                <select id="produto_id">
+                    <option value="">Selecione um produto</option>
+                    <?php foreach ($produtos as $produto): ?>
+                        <option value="<?php echo $produto['id']; ?>" 
+                                data-preco="<?php echo $produto['preco']; ?>" 
+                                data-promocao="<?php echo isset($promocoes[$produto['id']]) ? $promocoes[$produto['id']] : 0; ?>">
+                            <?php echo htmlspecialchars($produto['nome_produto']); ?> (R$ <?php echo number_format($produto['preco'], 2, ',', '.'); ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <label for="quantidade">Quantidade:</label>
+                <input type="number" id="quantidade" min="1" value="1">
+
+                <button onclick="adicionarProduto()">Adicionar Produto</button>
+            </div>
+
+            <h3>Itens da Venda</h3>
+            <table class="items-table" id="itens_venda">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Quantidade</th>
+                        <th>Preço Unitário</th>
+                        <th>Desconto (%)</th>
+                        <th>Subtotal</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="itens_venda_body"></tbody>
+            </table>
+
+            <div class="total-section">
+                <label for="desconto_manual">Desconto Manual (%):</label>
+                <input type="number" id="desconto_manual" min="0" max="100" value="0" onchange="calcularTotal()">
+                <p>Subtotal: R$ <span id="subtotal">0,00</span></p>
+                <p>Desconto Total: R$ <span id="desconto_total">0,00</span></p>
+                <p>Total Final: R$ <span id="total_final">0,00</span></p>
+            </div>
+
+            <form id="form_venda" action="registrar_venda.php" method="post">
+                <input type="hidden" name="itens_venda" id="itens_venda_input">
+                <input type="hidden" name="desconto_manual" id="desconto_manual_input">
+                <button type="submit" name="finalizar_venda" onclick="prepararVenda()">Finalizar Venda</button>
+            </form>
+            <button onclick="limparVenda()">Limpar Venda</button>
+        </div>
     </div>
+
+    <script>
+        const produtos = <?php echo json_encode($produtos); ?>;
+        const promocoes = <?php echo json_encode($promocoes); ?>;
+        let itensVenda = [];
+
+        function adicionarProduto() {
+            const produtoId = document.getElementById('produto_id').value;
+            const quantidade = parseInt(document.getElementById('quantidade').value);
+
+            if (!produtoId || quantidade < 1) {
+                alert('Por favor, selecione um produto e informe uma quantidade válida.');
+                return;
+            }
+
+            const produto = produtos.find(p => p.id == produtoId);
+            if (!produto) return;
+
+            if (quantidade > produto.quantidade) {
+                alert(`Estoque insuficiente para ${produto.nome_produto}. Quantidade disponível: ${produto.quantidade}`);
+                return;
+            }
+
+            const descontoPromocao = promocoes[produtoId] || 0;
+            const precoUnitario = parseFloat(produto.preco);
+            const precoComDesconto = precoUnitario * (1 - descontoPromocao / 100);
+            const subtotal = precoComDesconto * quantidade;
+
+            itensVenda.push({
+                id: produtoId,
+                nome: produto.nome_produto,
+                quantidade: quantidade,
+                precoUnitario: precoUnitario,
+                descontoPromocao: descontoPromocao,
+                subtotal: subtotal
+            });
+
+            atualizarTabela();
+            calcularTotal();
+        }
+
+        function removerProduto(index) {
+            itensVenda.splice(index, 1);
+            atualizarTabela();
+            calcularTotal();
+        }
+
+        function atualizarTabela() {
+            const tbody = document.getElementById('itens_venda_body');
+            tbody.innerHTML = '';
+
+            itensVenda.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.nome}</td>
+                    <td>${item.quantidade}</td>
+                    <td>R$ ${item.precoUnitario.toFixed(2).replace('.', ',')}</td>
+                    <td>${item.descontoPromocao}%</td>
+                    <td>R$ ${item.subtotal.toFixed(2).replace('.', ',')}</td>
+                    <td><button onclick="removerProduto(${index})">Remover</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function calcularTotal() {
+            let subtotal = itensVenda.reduce((sum, item) => sum + item.subtotal, 0);
+            const descontoManual = parseFloat(document.getElementById('desconto_manual').value) || 0;
+            const descontoValor = subtotal * (descontoManual / 100);
+            const totalFinal = subtotal - descontoValor;
+
+            document.getElementById('subtotal').textContent = subtotal.toFixed(2).replace('.', ',');
+            document.getElementById('desconto_total').textContent = descontoValor.toFixed(2).replace('.', ',');
+            document.getElementById('total_final').textContent = totalFinal.toFixed(2).replace('.', ',');
+        }
+
+        function limparVenda() {
+            itensVenda = [];
+            document.getElementById('desconto_manual').value = '0';
+            atualizarTabela();
+            calcularTotal();
+        }
+
+        function prepararVenda() {
+            document.getElementById('itens_venda_input').value = JSON.stringify(itensVenda);
+            document.getElementById('desconto_manual_input').value = document.getElementById('desconto_manual').value;
+        }
+    </script>
 </body>
 </html>
