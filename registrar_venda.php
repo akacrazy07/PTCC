@@ -115,42 +115,6 @@ $conexao->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar Venda - Gestão Panificadora</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .calculator-section {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .calculator-section label {
-            display: inline-block;
-            margin-right: 10px;
-            margin-bottom: 10px;
-        }
-        .calculator-section select, .calculator-section input {
-            margin-right: 20px;
-            margin-bottom: 10px;
-            padding: 5px;
-        }
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .items-table th, .items-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .items-table th {
-            background-color: #f2f2f2;
-        }
-        .total-section {
-            margin-top: 20px;
-            font-size: 1.1em;
-        }
-    </style>
 </head>
 <body>
     <header>
