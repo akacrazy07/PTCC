@@ -3,30 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Login - Panificadora</title>
+    <title>Login - Panificadora</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1> Login</h1>
+            <h1>Login</h1>
         </header>
         <form action="login.php" method="post">
             <input type="text" id="usuario" name="usuario" placeholder="Usuário" required>
-            <input type="text" name="cpf" placeholder="CPF (ex: 123.456.789-10)" required>
+            <input type="text" id="cpf" name="cpf" placeholder="CPF (ex: 123.456.789-00)" maxlength="14" oninput="formatarCPF(this)" required>
             <input type="password" id="senha" name="senha" placeholder="Senha" required>
             <button type="submit">Entrar</button>                
         </form>
     </div>
     <script>
         function formatarCPF(campo) {
-            let cpf = campo.value.replace(/\D/g, ''); // remove o que não é dígito
-            if (cpf.length > 11) cpf = cpf.slice(0, 11); // limita a 11 dígitos
-            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2'); // adiciona o primeiro ponto
-            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2'); // adiciona o segundo ponto
-            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2'); // adiciona o travessão
-            campo.value = cpf;
+            let value = campo.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+            if (value.length > 11) value = value.slice(0, 11); // Limita a 11 dígitos
+
+            // Aplica a máscara progressivamente: XXX.XXX.XXX-XX
+            if (value.length > 9) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            } else if (value.length > 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3');
+            } else if (value.length > 3) {
+                value = value.replace(/(\d{3})(\d{3})/, '$1.$2');
+            } else if (value.length > 0) {
+                value = value.replace(/(\d{3})/, '$1');
+            }
+
+            campo.value = value;
         }
     </script>
 </body>
 </html>
+
+

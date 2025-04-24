@@ -4,7 +4,7 @@ require_once 'conexao.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $usuario = $_POST['usuario'];
-    $cpf = $_POST['cpf'];
+    $cpf = preg_replace('/[^0-9]/', '', $_POST['cpf']); // Remove pontos e traço do CPF
     $senha = $_POST['senha'];
 
     $sql = "SELECT * FROM usuarios WHERE usuario = ? AND cpf = ?";
