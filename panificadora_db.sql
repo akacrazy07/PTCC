@@ -1,4 +1,4 @@
-CREATE DATABASE  IF NOT EXISTS `panificadora_db` /*!40100 DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci */;
+CREATE DATABASE IF NOT EXISTS `panificadora_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */;
 USE `panificadora_db`;
 -- MySQL dump 10.13  Distrib 8.0.41, for Win64 (x86_64)
 --
@@ -9,7 +9,7 @@ USE `panificadora_db`;
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
@@ -32,7 +32,7 @@ CREATE TABLE `backups` (
   PRIMARY KEY (`id`),
   KEY `usuario_id` (`usuario_id`),
   CONSTRAINT `backups_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -55,7 +55,7 @@ CREATE TABLE `categorias` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(50) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -83,7 +83,7 @@ CREATE TABLE `desperdicio` (
   PRIMARY KEY (`id`),
   KEY `produto_id` (`produto_id`),
   CONSTRAINT `desperdicio_ibfk_1` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -108,7 +108,7 @@ CREATE TABLE `fornecedores` (
   `contato` varchar(100) NOT NULL,
   `endereco` text DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -118,6 +118,37 @@ CREATE TABLE `fornecedores` (
 LOCK TABLES `fornecedores` WRITE;
 /*!40000 ALTER TABLE `fornecedores` DISABLE KEYS */;
 /*!40000 ALTER TABLE `fornecedores` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `historico_precos`
+--
+
+DROP TABLE IF EXISTS `historico_precos`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `historico_precos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `produto_id` int(11) NOT NULL,
+  `preco_antigo` decimal(10,2) NOT NULL,
+  `preco_novo` decimal(10,2) NOT NULL,
+  `data_alteracao` timestamp NOT NULL DEFAULT current_timestamp(),
+  `usuario_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `produto_id` (`produto_id`),
+  KEY `usuario_id` (`usuario_id`),
+  CONSTRAINT `historico_precos_ibfk_1` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `historico_precos_ibfk_2` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `historico_precos`
+--
+
+LOCK TABLES `historico_precos` WRITE;
+/*!40000 ALTER TABLE `historico_precos` DISABLE KEYS */;
+/*!40000 ALTER TABLE `historico_precos` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -136,7 +167,7 @@ CREATE TABLE `log_exportacoes` (
   PRIMARY KEY (`id`),
   KEY `usuario_id` (`usuario_id`),
   CONSTRAINT `log_exportacoes_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -164,7 +195,7 @@ CREATE TABLE `logs` (
   PRIMARY KEY (`id`),
   KEY `fk_usuario` (`usuario_id`),
   CONSTRAINT `fk_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -173,7 +204,24 @@ CREATE TABLE `logs` (
 
 LOCK TABLES `logs` WRITE;
 /*!40000 ALTER TABLE `logs` DISABLE KEYS */;
-INSERT INTO `logs` VALUES (1,1,'Excluiu usuÃ¡rio \'funcionario1\' (vendedor)','2025-03-20 02:12:22'),(2,1,'Adicionou usuÃ¡rio \'eduardo \' (gerente)','2025-03-20 02:13:30'),(3,1,'Adicionou usuÃ¡rio \'marcus\' (vendedor)','2025-03-20 02:34:37'),(4,1,'Registrou venda de 100 unidade(s) de \'PÃ£o de trigo\'','2025-03-21 02:25:09'),(5,1,'Excluiu produto \'PÃ£o de trigo\'','2025-03-21 02:44:24'),(6,1,'Adicionou produto \'PÃ£o de trigo\'','2025-03-21 02:45:00'),(7,1,'Adicionou produto \'pÃ£o de queijo\'','2025-03-21 02:45:27'),(8,1,'Adicionou produto \'enroladinho de salsicha\'','2025-03-21 02:46:00'),(9,1,'Adicionou produto \'sonho\'','2025-03-21 02:46:40'),(10,1,'Registrou venda de 19 unidade(s) de \'PÃ£o de trigo\'','2025-03-21 02:47:01'),(11,1,'Registrou venda de 25 unidade(s) de \'pÃ£o de queijo\'','2025-03-21 02:47:01'),(12,1,'Registrou venda de 11 unidade(s) de \'enroladinho de salsicha\'','2025-03-21 02:47:01'),(13,1,'Registrou venda de 6 unidade(s) de \'sonho\'','2025-03-21 02:47:01'),(14,1,'Registrou produÃ§Ã£o de 3 unidade(s) de \'PÃ£o de trigo\'','2025-03-21 04:05:42'),(15,1,'Registrou produÃ§Ã£o de 14 unidade(s) de \'PÃ£o de trigo\'','2025-03-21 04:05:53'),(16,1,'Registrou produÃ§Ã£o de 29 unidade(s) de \'PÃ£o de trigo\'','2025-03-21 04:06:02'),(17,1,'Registrou venda de 3 unidade(s) de \'PÃ£o de trigo\'com Desconto de 10.00%','2025-04-03 02:26:14'),(18,1,'Registrou venda de 6 unidade(s) de \'pÃ£o de queijo\'com Desconto de 10.00%','2025-04-03 02:26:30');
+INSERT INTO `logs` VALUES (1,1,'Excluiu usuário \'funcionario1\' (vendedor)','2025-03-20 02:12:22'),
+(2,1,'Adicionou usuário \'eduardo\' (gerente)','2025-03-20 02:13:30'),
+(3,1,'Adicionou usuário \'marcus\' (vendedor)','2025-03-20 02:34:37'),
+(4,1,'Registrou venda de 100 unidade(s) de \'Pão de trigo\'','2025-03-21 02:25:09'),
+(5,1,'Excluiu produto \'Pão de trigo\'','2025-03-21 02:44:24'),
+(6,1,'Adicionou produto \'Pão de trigo\'','2025-03-21 02:45:00'),
+(7,1,'Adicionou produto \'pão de queijo\'','2025-03-21 02:45:27'),
+(8,1,'Adicionou produto \'enroladinho de salsicha\'','2025-03-21 02:46:00'),
+(9,1,'Adicionou produto \'sonho\'','2025-03-21 02:46:40'),
+(10,1,'Registrou venda de 19 unidade(s) de \'Pão de trigo\'','2025-03-21 02:47:01'),
+(11,1,'Registrou venda de 25 unidade(s) de \'pão de queijo\'','2025-03-21 02:47:01'),
+(12,1,'Registrou venda de 11 unidade(s) de \'enroladinho de salsicha\'','2025-03-21 02:47:01'),
+(13,1,'Registrou venda de 6 unidade(s) de \'sonho\'','2025-03-21 02:47:01'),
+(14,1,'Registrou produção de 3 unidade(s) de \'Pão de trigo\'','2025-03-21 04:05:42'),
+(15,1,'Registrou produção de 14 unidade(s) de \'Pão de trigo\'','2025-03-21 04:05:53'),
+(16,1,'Registrou produção de 29 unidade(s) de \'Pão de trigo\'','2025-03-21 04:06:02'),
+(17,1,'Registrou venda de 3 unidade(s) de \'Pão de trigo\' com Desconto de 10.00%','2025-04-03 02:26:14'),
+(18,1,'Registrou venda de 6 unidade(s) de \'pão de queijo\' com Desconto de 10.00%','2025-04-03 02:26:30');
 /*!40000 ALTER TABLE `logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -200,7 +248,7 @@ CREATE TABLE `produtos` (
   KEY `fornecedor_id` (`fornecedor_id`),
   CONSTRAINT `fk_categoria` FOREIGN KEY (`categoria_id`) REFERENCES `categorias` (`id`),
   CONSTRAINT `produtos_ibfk_1` FOREIGN KEY (`fornecedor_id`) REFERENCES `fornecedores` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -209,7 +257,10 @@ CREATE TABLE `produtos` (
 
 LOCK TABLES `produtos` WRITE;
 /*!40000 ALTER TABLE `produtos` DISABLE KEYS */;
-INSERT INTO `produtos` VALUES (10,'PÃ£o de trigo','',124,0.30,NULL,20,8,NULL,NULL),(11,'pÃ£o de queijo','',169,0.35,NULL,40,8,NULL,NULL),(12,'enroladinho de salsicha','',39,2.50,NULL,6,10,NULL,NULL),(13,'sonho','',24,2.00,NULL,10,9,NULL,NULL);
+INSERT INTO `produtos` VALUES (10,'Pão de trigo','',124,0.30,NULL,20,8,NULL,NULL),
+(11,'pão de queijo','',169,0.35,NULL,40,8,NULL,NULL),
+(12,'enroladinho de salsicha','',39,2.50,NULL,6,10,NULL,NULL),
+(13,'sonho','',24,2.00,NULL,10,9,NULL,NULL);
 /*!40000 ALTER TABLE `produtos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -236,7 +287,7 @@ CREATE TABLE `promocoes` (
   CONSTRAINT `fk_promocoes_produto` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`) ON DELETE CASCADE,
   CONSTRAINT `promocoes_ibfk_1` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`) ON DELETE SET NULL,
   CONSTRAINT `promocoes_ibfk_2` FOREIGN KEY (`categoria_id`) REFERENCES `categorias` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -260,7 +311,7 @@ CREATE TABLE `receitas` (
   `nome` varchar(100) NOT NULL,
   `ingredientes` text NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -291,7 +342,7 @@ CREATE TABLE `usuarios` (
   UNIQUE KEY `usuario` (`usuario`),
   UNIQUE KEY `cpf` (`cpf`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -300,7 +351,9 @@ CREATE TABLE `usuarios` (
 
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
-INSERT INTO `usuarios` VALUES (1,'admin','123.456.789-00','admin@padaria.com','admin','$2y$10$cLZegIJV.SUQdyF.5LFgO.q5NzB5gMTxcC7o0MCYS4i/ISZjNowYG',''),(4,'eduardo ','666.777.888-99','eduardojsr.akcr@gmail.com','gerente','$2y$10$0DvyZ0TW8MmB7bDDIj2L2.mZxkJW/lUaqQNKk25IVS1n0S46N/h3y',''),(5,'marcus','999.888.777-66','mkdanorte@gmail.com','vendedor','$2y$10$HRmp6sdLup0M0Q3GjCL68u94nhou0OHwFtWVmGXuE22oXRqnEmBeW','');
+INSERT INTO `usuarios` VALUES (1,'admin','123.456.789-00','admin@padaria.com','admin','$2y$10$cLZegIJV.SUQdyF.5LFgO.q5NzB5gMTxcC7o0MCYS4i/ISZjNowYG',''),
+(4,'eduardo','666.777.888-99','eduardojsr.akcr@gmail.com','gerente','$2y$10$0DvyZ0TW8MmB7bDDIj2L2.mZxkJW/lUaqQNKk25IVS1n0S46N/h3y',''),
+(5,'marcus','999.888.777-66','mkdanorte@gmail.com','vendedor','$2y$10$HRmp6sdLup0M0Q3GjCL68u94nhou0OHwFtWVmGXuE22oXRqnEmBeW','');
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -320,7 +373,7 @@ CREATE TABLE `vendas` (
   PRIMARY KEY (`id`),
   KEY `idx_produto_id` (`produto_id`),
   CONSTRAINT `vendas_ibfk_1` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -329,7 +382,12 @@ CREATE TABLE `vendas` (
 
 LOCK TABLES `vendas` WRITE;
 /*!40000 ALTER TABLE `vendas` DISABLE KEYS */;
-INSERT INTO `vendas` VALUES (6,10,19,'2025-03-21 02:47:01',0.30),(7,11,25,'2025-03-21 02:47:01',0.35),(8,12,11,'2025-03-21 02:47:01',2.50),(9,13,6,'2025-03-21 02:47:01',2.00),(10,10,3,'2025-04-03 02:26:14',0.27),(11,11,6,'2025-04-03 02:26:30',0.32);
+INSERT INTO `vendas` VALUES (6,10,19,'2025-03-21 02:47:01',0.30),
+(7,11,25,'2025-03-21 02:47:01',0.35),
+(8,12,11,'2025-03-21 02:47:01',2.50),
+(9,13,6,'2025-03-21 02:47:01',2.00),
+(10,10,3,'2025-04-03 02:26:14',0.27),
+(11,11,6,'2025-04-03 02:26:30',0.32);
 /*!40000 ALTER TABLE `vendas` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -342,4 +400,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-04-14 22:46:49
+-- Dump completed on 2025-04-24  0:22:00

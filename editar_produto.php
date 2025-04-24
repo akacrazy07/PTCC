@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $estoque_minimo = intval($_POST['estoque_minimo']);
     $categoria_id = intval($_POST['categoria_id']);
     $data_validade = !empty($_POST['data_validade']) ? $_POST['data_validade'] : null;
+    $usuario_id = $_SESSION['usuario_id'];
 
     if (empty($nome_produto) || $quantidade < 0 || $preco < 0 || $estoque_minimo < 0) {
         $mensagem = "Erro: Nome vazio ou valores inválidos!";
@@ -48,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $imagem_nome = uniqid() . '.' . $extensao;
                 $destino = 'imagens/' . $imagem_nome;
                 if (move_uploaded_file($imagem_tmp, $destino)) {
-                    // remove a imagem antiga, se existir
+                    // Remove a imagem antiga, se existir
                     if ($produto['imagem'] && file_exists("imagens/" . $produto['imagem'])) {
                         unlink("imagens/" . $produto['imagem']);
                     }
@@ -61,11 +62,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if (empty($mensagem)) {
+            // Verificar se o preço foi alterado
+            $preco_antigo = floatval($produto['preco']);
+            $preco_alterado = ($preco_antigo != $preco);
+
+            // Atualizar o produto
             $stmt = $conexao->prepare("UPDATE produtos SET nome_produto = ?, descricao = ?, quantidade = ?, preco = ?, imagem = ?, estoque_minimo = ?, categoria_id = ?, data_validade = ? WHERE id = ?");
             $stmt->bind_param("ssidsiisi", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $estoque_minimo, $categoria_id, $data_validade, $id);
             if ($stmt->execute()) {
+                // Registrar no histórico de preços, se o preço foi alterado
+                if ($preco_alterado) {
+                    $stmt_historico = $conexao->prepare("INSERT INTO historico_precos (produto_id, preco_antigo, preco_novo, usuario_id) VALUES (?, ?, ?, ?)");
+                    $stmt_historico->bind_param("iddi", $id, $preco_antigo, $preco, $usuario_id);
+                    $stmt_historico->execute();
+                    $stmt_historico->close();
+
+                    // Registrar log
+                    $acao = "Alterou preço do produto ID $id de R$ " . number_format($preco_antigo, 2, ',', '.') . " para R$ " . number_format($preco, 2, ',', '.');
+                    $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
+                    $stmt_log->bind_param("is", $usuario_id, $acao);
+                    $stmt_log->execute();
+                    $stmt_log->close();
+                }
+
                 $mensagem = "Produto atualizado com sucesso!";
-                // recarregar dados do produto após atualização
+                // Recarregar dados do produto após atualização
                 $stmt = $conexao->prepare("SELECT * FROM produtos WHERE id = ?");
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
@@ -105,12 +126,14 @@ $conexao->close();
                 <a href="receitas.php">Receitas</a>
                 <a href="desperdicio.php">Desperdício</a>
                 <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
+                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
+                <a href="exportar_dados.php">Exportar Dados</a>
+                <a href="pesquisa_avancada.php">Pesquisa Avançada</a>
+                <a href="historico_precos.php">Histórico de Preços</a>
             <?php endif; ?>
             <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
                 <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
                 <a href="ver_logs.php">Ver Logs</a>
-                <a href="exportar_dados.php">Exportar Dados</a>
                 <a href="gerenciar_backups.php">Gerenciar Backups</a>
             <?php endif; ?>
             <a href="logout.php">Sair</a>

@@ -40,7 +40,8 @@ if (isset($_GET['excluir']) && is_numeric($_GET['excluir']) && in_array($_SESSIO
     }
     $stmt->close();
 }
-// filtrar por categoria
+
+// Filtrar por categoria
 $categoria_filtro = isset($_GET['categoria']) ? intval($_GET['categoria']) : 0;
 $sql = "SELECT p.*, c.nome AS categoria_nome FROM produtos p LEFT JOIN categorias c ON p.categoria_id = c.id";
 if ($categoria_filtro > 0) {
@@ -58,7 +59,7 @@ while ($produto = $resultado->fetch_assoc()) {
 }
 $stmt->close();
 
-// buscar categorias para o filtro
+// Buscar categorias para o filtro
 $sql_categorias = "SELECT id, nome FROM categorias";
 $resultado_categorias = $conexao->query($sql_categorias);
 $categorias = [];
@@ -75,8 +76,9 @@ $conexao->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listar Produtos - Gestão Panificadora</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .alerta-validade { background-color: #ffcccc;}
+        .alerta-validade { background-color: #ffcccc; }
     </style>
 </head>
 <body>
@@ -111,8 +113,8 @@ $conexao->close();
         <?php if (isset($mensagem)): ?>
             <p class="mensagem"><?php echo $mensagem; ?></p>
         <?php endif; ?>
-        <form method="get" action="listar_produtos.php">
-            <select name="categoria" onchange="this.form.submit()">
+        <form method="get" action="listar_produtos.php" class="mb-3">
+            <select name="categoria" onchange="this.form.submit()" class="form-select w-auto">
                 <option value="0">Todas as Categorias</option>
                 <?php foreach ($categorias as $categoria): ?>
                     <option value="<?php echo $categoria['id']; ?>" <?php echo $categoria_filtro == $categoria['id'] ? 'selected' : ''; ?>>
@@ -124,20 +126,21 @@ $conexao->close();
         <?php if (empty($produtos)): ?>
             <p>Nenhum produto cadastrado ainda.</p>
         <?php else: ?>
-            <table>
-                <thead>
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
                     <tr>
                         <th>Imagem</th>
                         <th>Nome</th>
+                        <th>Categoria</th>
                         <th>Descrição</th>
                         <th>Quantidade</th>
                         <th>Preço</th>
                         <th>Data de Validade</th>
                         <th>Ações</th>
-                        </tr>
+                    </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($produtos as $produto): ?>
+                    <?php foreach ($produtos as $produto): ?>
                         <?php
                         $hoje = new DateTime();
                         $validade = $produto['data_validade'] ? new DateTime($produto['data_validade']) : null;
@@ -147,7 +150,7 @@ $conexao->close();
                         <tr <?php echo $alerta ? 'class="alerta-validade"' : ''; ?>>
                             <td>
                                 <?php if ($produto['imagem']): ?>
-                                    <img src="imagens/<?php echo htmlspecialchars($produto['imagem']); ?>" alt="<?php echo htmlspecialchars($produto['nome_produto']); ?>" style="max-width: 50px;">
+                                    <img src="imagens/<?php echo htmlspecialchars($produto['imagem']); ?>" alt="<?php echo htmlspecialchars($produto['nome_produto']); ?>" class="produto-imagem">
                                 <?php else: ?>
                                     Sem imagem
                                 <?php endif; ?>
@@ -165,8 +168,8 @@ $conexao->close();
                             </td>
                             <td>
                                 <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                                    <a href="editar_produto.php?id=<?php echo $produto['id']; ?>" class="btn btn-editar">Editar</a>
-                                    <a href="listar_produtos.php?excluir=<?php echo $produto['id']; ?>" class="btn btn-excluir" onclick="return confirm('Tem certeza que quer excluir este produto?');">Excluir</a>
+                                    <a href="editar_produto.php?id=<?php echo $produto['id']; ?>" class="btn btn-primary btn-sm">Editar</a>
+                                    <a href="listar_produtos.php?excluir=<?php echo $produto['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que quer excluir este produto?');">Excluir</a>
                                 <?php endif; ?>
                             </td>
                         </tr>

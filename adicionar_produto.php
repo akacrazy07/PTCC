@@ -9,7 +9,7 @@ require_once 'conexao.php';
 
 $mensagem = '';
 
-//buscar categorias
+// Buscar categorias
 $sql_categorias = "SELECT id, nome FROM categorias";
 $resultado_categorias = $conexao->query($sql_categorias);
 $categorias = [];
@@ -25,12 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $estoque_minimo = intval($_POST['estoque_minimo']);
     $categoria_id = intval($_POST['categoria_id']);
     $data_validade = !empty($_POST['data_validade']) ? $_POST['data_validade'] : null;
-// validação
+
+    // Validação
     if (empty($nome_produto) || $quantidade <= 0 || $preco <= 0 || $estoque_minimo <= 0) {
         $mensagem = "Erro: Nome vazio ou valores inválidos!";
-    } 
-    else {
-        //upload de img
+    } else {
+        // Upload de imagem
         $imagem_nome = null;
         if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] === UPLOAD_ERR_OK) {
             $imagem_tmp = $_FILES['imagem']['tmp_name'];
@@ -39,53 +39,65 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $permitidos = ['jpg', 'jpeg', 'png'];
 
             if (in_array($extensao, $permitidos)) {
-                $imagem_nome = uniqid() . '.' . $extensao; // nome único
+                $imagem_nome = uniqid() . '.' . $extensao; // Nome único
                 $destino = 'imagens/' . $imagem_nome;
-                if (!move_uploaded_file($imagem_tmp, $destino)) {
+                if (move_uploaded_file($imagem_tmp, $destino)) {
                     $mensagem = 'Imagem enviada com sucesso!';
-                    } else {
-                        $mensagem = 'Erro ao enviar imagem!';
-                    }
                 } else {
-                    $mensagem = "Erro: Imagem inválida! Use JPG, JPEG ou PNG.";
+                    $mensagem = 'Erro ao enviar imagem!';
                 }
+            } else {
+                $mensagem = "Erro: Imagem inválida! Use JPG, JPEG ou PNG.";
             }
         }
-        // inserir no banco
-        if (empty($mensagem)) {
-    $sql = "INSERT INTO produtos (nome_produto, descricao, quantidade, preco, imagem, estoque_minimo, categoria_id, data_validade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-    $stmt = $conexao->prepare($sql);
-    $stmt->bind_param("ssidsiis", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $estoque_minimo, $categoria_id, $data_validade);
-    if ($stmt->execute()) {
-        $mensagem = 'Produto adicionado com sucesso!';
-        // registrar log
-        $usuario_id = $_SESSION['usuario_id'];
-                $acao = "Adicionou produto '$nome_produto'";
+
+        // Inserir no banco
+        if (empty($mensagem) || $mensagem == 'Imagem enviada com sucesso!') {
+            $sql = "INSERT INTO produtos (nome_produto, descricao, quantidade, preco, imagem, estoque_minimo, categoria_id, data_validade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $conexao->prepare($sql);
+            $stmt->bind_param("ssidsiis", $nome_produto, $descricao, $quantidade, $preco, $imagem_nome, $estoque_minimo, $categoria_id, $data_validade);
+            if ($stmt->execute()) {
+                $novo_produto_id = $conexao->insert_id; // ID do produto recém-criado
+                $usuario_id = $_SESSION['usuario_id'];
+
+                // Registrar no histórico de preços (preço inicial)
+                $preco_antigo = 0.00;
+                $stmt_historico = $conexao->prepare("INSERT INTO historico_precos (produto_id, preco_antigo, preco_novo, usuario_id) VALUES (?, ?, ?, ?)");
+                $stmt_historico->bind_param("iddi", $novo_produto_id, $preco_antigo, $preco, $usuario_id);
+                $stmt_historico->execute();
+                $stmt_historico->close();
+
+                // Registrar log
+                $acao = "Adicionou produto '$nome_produto' com preço inicial R$ " . number_format($preco, 2, ',', '.');
                 $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
                 $stmt_log->bind_param("is", $usuario_id, $acao);
                 $stmt_log->execute();
                 $stmt_log->close();
-    } else {
-        $mensagem = 'Erro ao adicionar produto: ' . $conexao->error;
+
+                $mensagem = 'Produto adicionado com sucesso!';
+            } else {
+                $mensagem = 'Erro ao adicionar produto: ' . $conexao->error;
+            }
+            $stmt->close();
+        }
     }
-    $stmt->close();
-    }
-    $conexao->close();
 }
+
+$conexao->close();
 ?>
 
 <!DOCTYPE html>
 <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title> Adicionar produto - Panificadora </title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <header>
-            <h1>Gestão de estoque - Panificadora</h1>
-            <nav>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar Produto - Panificadora</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Gestão de Estoque - Panificadora</h1>
+        <nav>
             <a href="controle_estoque.php">Dashboard</a>
             <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
                 <a href="adicionar_produto.php">Adicionar Produto</a>
@@ -98,23 +110,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <a href="receitas.php">Receitas</a>
                 <a href="desperdicio.php">Desperdício</a>
                 <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
+                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
+                <a href="exportar_dados.php">Exportar Dados</a>
+                <a href="pesquisa_avancada.php">Pesquisa Avançada</a>
+                <a href="historico_precos.php">Histórico de Preços</a>
             <?php endif; ?>
             <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
                 <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
                 <a href="ver_logs.php">Ver Logs</a>
-                <a href="exportar_dados.php">Exportar Dados</a>
                 <a href="gerenciar_backups.php">Gerenciar Backups</a>
             <?php endif; ?>
             <a href="logout.php">Sair</a>
         </nav>
-        </header>
-        <div class="container">
-            <h2> Adicionar Novo Produto</h2>
-            <?php if (!empty($mensagem)): ?>
-                <p><?php echo $mensagem; ?></p>
-            <?php endif; ?>
-            <form action="adicionar_produto.php" method="post" enctype="multipart/form-data">
+    </header>
+    <div class="container">
+        <h2>Adicionar Novo Produto</h2>
+        <?php if (!empty($mensagem)): ?>
+            <p><?php echo $mensagem; ?></p>
+        <?php endif; ?>
+        <form action="adicionar_produto.php" method="post" enctype="multipart/form-data">
             <input type="text" name="nome_produto" placeholder="Nome do Produto" required>
             <textarea name="descricao" placeholder="Descrição (opcional)"></textarea>
             <input type="number" name="quantidade" placeholder="Quantidade Inicial" required min="0">
@@ -129,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <input type="date" name="data_validade" placeholder="Data de Validade (opcional)">
             <input type="file" name="imagem" accept=".jpg, .jpeg, .png" placeholder="Imagem do Produto">
             <button type="submit">Adicionar Produto</button>
-            </form>
-        </div>
-    </body>
+        </form>
+    </div>
+</body>
 </html>
