@@ -6,6 +6,22 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true 
 }
 require_once 'conexao.php';
 
+// Função para validar CPF
+function validarCPF($cpf) {
+    $cpf = preg_replace('/[^0-9]/', '', $cpf);
+    if (strlen($cpf) != 11) return false;
+    if (preg_match('/(\d)\1{10}/', $cpf)) return false;
+    for ($t = 9; $t < 11; $t++) {
+        $d = 0;
+        for ($c = 0; $c < $t; $c++) {
+            $d += $cpf[$c] * (($t + 1) - $c);
+        }
+        $d = ((10 * $d) % 11) % 10;
+        if ($cpf[$c] != $d) return false;
+    }
+    return true;
+}
+
 $mensagem = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['adicionar'])) {
@@ -15,23 +31,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['adicionar'])) {
     $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
     $perfil = $_POST['perfil'];
 
-    $stmt = $conexao->prepare("INSERT INTO usuarios (usuario, cpf, email, senha, perfil) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssss", $usuario, $cpf, $email, $senha, $perfil);
-    if ($stmt->execute()) {
-        $mensagem = "Usuário adicionado com sucesso!";
-        // registrar log de ação
-        $usuario_id = $_SESSION['usuario_id'];
-        $acao = "Adicionou usuário '$usuario' ($perfil)";
-        $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
-        $stmt_log->bind_param("is", $usuario_id, $acao);
-        $stmt_log->execute();
-        $stmt_log->close();
+    if (!validarCPF($cpf)) {
+        $mensagem = "CPF inválido!";
     } else {
-        $mensagem = "Erro ao adicionar usuário: " . $conexao->error;
+        $stmt = $conexao->prepare("INSERT INTO usuarios (usuario, cpf, email, senha, perfil) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssss", $usuario, $cpf, $email, $senha, $perfil);
+        if ($stmt->execute()) {
+            $mensagem = "Usuário adicionado com sucesso!";
+            $usuario_id = $_SESSION['usuario_id'];
+            $acao = "Adicionou usuário '$usuario' ($perfil)";
+            $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
+            $stmt_log->bind_param("is", $usuario_id, $acao);
+            $stmt_log->execute();
+            $stmt_log->close();
+        } else {
+            $mensagem = "Erro ao adicionar usuário: " . $conexao->error;
+        }
+        $stmt->close();
     }
-    $stmt->close();
 }
-// excluir usuário
+
 if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
     $id_excluir = intval($_GET['excluir']);
     $stmt = $conexao->prepare("SELECT usuario, perfil FROM usuarios WHERE id = ?");
@@ -44,7 +63,6 @@ if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
     $stmt->bind_param("i", $id_excluir);
     if ($stmt->execute() && $stmt->affected_rows > 0) {
         $mensagem = "Usuário excluído com sucesso!";
-        // registrar log de ação de exclusão
         $usuario_id = $_SESSION['usuario_id'];
         $acao = "Excluiu usuário '{$usuario_excluido['usuario']}' ({$usuario_excluido['perfil']})";
         $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
@@ -57,7 +75,6 @@ if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
     $stmt->close();
 }
 
-// editar usuários
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['editar'])) {
     $id = intval($_POST['id']);
     $usuario = $_POST['usuario'];
@@ -66,32 +83,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['editar'])) {
     $perfil = $_POST['perfil'];
     $senha = !empty($_POST['senha']) ? password_hash($_POST['senha'], PASSWORD_DEFAULT) : null;
 
-    $sql = "UPDATE usuarios SET usuario = ?, cpf = ?, email = ?, perfil = ?";
-    if ($senha) {
-        $sql .= ", senha = ?";
-    }
-    $sql .= " WHERE id = ? AND perfil != 'admin'";
-    $stmt = $conexao->prepare($sql);
-    if ($senha) {
-        $stmt->bind_param("sssssi", $usuario, $cpf, $email, $perfil, $senha, $id);
+    if (!validarCPF($cpf)) {
+        $mensagem = "CPF inválido!";
     } else {
-        $stmt->bind_param("ssssi", $usuario, $cpf, $email, $perfil, $id);
+        $sql = "UPDATE usuarios SET usuario = ?, cpf = ?, email = ?, perfil = ?";
+        if ($senha) {
+            $sql .= ", senha = ?";
+        }
+        $sql .= " WHERE id = ? AND perfil != 'admin'";
+        $stmt = $conexao->prepare($sql);
+        if ($senha) {
+            $stmt->bind_param("sssssi", $usuario, $cpf, $email, $perfil, $senha, $id);
+        } else {
+            $stmt->bind_param("ssssi", $usuario, $cpf, $email, $perfil, $id);
+        }
+        if ($stmt->execute() && $stmt->affected_rows > 0) {
+            $mensagem = "Usuário atualizado com sucesso!";
+            $usuario_id = $_SESSION['usuario_id'];
+            $acao = "Editou usuário '$usuario' ($perfil)";
+            $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
+            $stmt_log->bind_param("is", $usuario_id, $acao);
+            $stmt_log->execute();
+            $stmt_log->close();
+        } else {
+            $mensagem = "Erro ao editar usuário ou usuário é admin.";
+        }
+        $stmt->close();
     }
-    if ($stmt->execute() && $stmt->affected_rows > 0) {
-        $mensagem = "Usuário atualizado com sucesso!";
-        $usuario_id = $_SESSION['usuario_id'];
-        $acao = "Editou usuário '$usuario' ($perfil)";
-        $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
-        $stmt_log->bind_param("is", $usuario_id, $acao);
-        $stmt_log->execute();
-        $stmt_log->close();
-    } else {
-        $mensagem = "Erro ao editar usuário ou usuário é admin.";
-    }
-    $stmt->close();
 }
 
-// listar usuários existentes
 $usuarios = $conexao->query("SELECT id, usuario, cpf, email, perfil FROM usuarios")->fetch_all(MYSQLI_ASSOC);
 $conexao->close();
 ?>
@@ -103,6 +123,18 @@ $conexao->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Usuários - Panificadora</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container-custom {
+            width: 90%;
+            max-width: 1200px;
+            margin: 40px auto;
+        }
+        .form-group-spacing input,
+        .form-group-spacing select {
+            margin: 5px 0;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -131,29 +163,31 @@ $conexao->close();
             <a href="logout.php">Sair</a>
         </nav>
     </header>
-    <div class="container">
+    <div class="container container-custom">
         <h2>Gerenciar Usuários</h2>
         <?php if (!empty($mensagem)): ?>
-            <p class="mensagem"><?php echo $mensagem; ?></p>
+            <p class="mensagem <?php echo strpos($mensagem, 'sucesso') !== false ? 'mensagem-success' : 'mensagem-error'; ?>">
+                <?php echo $mensagem; ?>
+            </p>
         <?php endif; ?>
         <h3>Adicionar Usuário</h3>
-        <form action="gerenciar_usuarios.php" method="post">
+        <form action="gerenciar_usuarios.php" method="post" class="form-group-spacing">
             <input type="text" name="usuario" placeholder="Usuário" required>
             <input type="text" name="cpf" placeholder="CPF (ex: 123.456.789-00)" required>
             <input type="email" name="email" placeholder="Email" required>
             <input type="password" name="senha" placeholder="Senha" required>
-            <select name="perfil" required>
+            <select name="perfil" required class="form-select">
                 <option value="gerente">Gerente</option>
                 <option value="vendedor">Vendedor</option>
             </select>
-            <button type="submit" name="adicionar">Adicionar</button>
+            <button type="submit" name="adicionar" class="btn btn-primary">Adicionar</button>
         </form>
         <h3>Usuários Cadastrados</h3>
         <?php if (empty($usuarios)): ?>
             <p>Nenhum usuário cadastrado.</p>
         <?php else: ?>
-            <table>
-                <thead>
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
                     <tr>
                         <th>Usuário</th>
                         <th>CPF</th>
@@ -171,25 +205,25 @@ $conexao->close();
                             <td><?php echo htmlspecialchars($usuario['perfil']); ?></td>
                             <td>
                                 <?php if ($usuario['perfil'] !== 'admin'): ?>
-                                    <button onclick="document.getElementById('editar-<?php echo $usuario['id']; ?>').style.display='block'">Editar</button>
-                                    <a href="gerenciar_usuarios.php?excluir=<?php echo $usuario['id']; ?>" class="btn btn-excluir" onclick="return confirm('Tem certeza que quer excluir este usuário?');">Excluir</a>
+                                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('editar-<?php echo $usuario['id']; ?>').style.display='block'">Editar</button>
+                                    <a href="gerenciar_usuarios.php?excluir=<?php echo $usuario['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que quer excluir este usuário?');">Excluir</a>
                                 <?php endif; ?>
                             </td>
                         </tr>
                         <tr id="editar-<?php echo $usuario['id']; ?>" style="display:none;">
                             <td colspan="5">
-                                <form action="gerenciar_usuarios.php" method="post">
+                                <form action="gerenciar_usuarios.php" method="post" class="form-group-spacing">
                                     <input type="hidden" name="id" value="<?php echo $usuario['id']; ?>">
                                     <input type="text" name="usuario" value="<?php echo htmlspecialchars($usuario['usuario']); ?>" required>
                                     <input type="text" name="cpf" value="<?php echo htmlspecialchars($usuario['cpf']); ?>" required>
                                     <input type="email" name="email" value="<?php echo htmlspecialchars($usuario['email']); ?>" required>
-                                    <select name="perfil" required>
+                                    <select name="perfil" required class="form-select">
                                         <option value="gerente" <?php echo $usuario['perfil'] === 'gerente' ? 'selected' : ''; ?>>Gerente</option>
                                         <option value="vendedor" <?php echo $usuario['perfil'] === 'vendedor' ? 'selected' : ''; ?>>Vendedor</option>
                                     </select>
                                     <input type="password" name="senha" placeholder="Nova senha (opcional)">
-                                    <button type="submit" name="editar">Salvar</button>
-                                    <button type="button" onclick="document.getElementById('editar-<?php echo $usuario['id']; ?>').style.display='none'">Cancelar</button>
+                                    <button type="submit" name="editar" class="btn btn-success btn-sm">Salvar</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editar-<?php echo $usuario['id']; ?>').style.display='none'">Cancelar</button>
                                 </form>
                             </td>
                         </tr>
