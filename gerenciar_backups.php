@@ -64,36 +64,11 @@ $backups = glob($backup_dir . '*.sql');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Backups - Panificadora</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <h1>Gestão de Estoque - Panificadora</h1>
-        <nav>
-            <a href="controle_estoque.php">Dashboard</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="adicionar_produto.php">Adicionar Produto</a>
-                <a href="planejamento_producao.php">Planejamento de Produção</a>
-            <?php endif; ?>
-            <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="listar_produtos.php">Listar Produtos</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="relatorios.php">Relatórios</a>
-                <a href="receitas.php">Receitas</a>
-                <a href="desperdicio.php">Desperdício</a>
-                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="exportar_dados.php">Exportar Dados</a>
-            <?php endif; ?>
-            <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
-                <a href="ver_logs.php">Ver Logs</a>
-                <a href="gerenciar_backups.php">Gerenciar Backups</a>
-            <?php endif; ?>
-            <a href="logout.php">Sair</a>
-        </nav>
-    </header>
+<?php include 'navbar.php'; ?>
     <div class="container">
-        <h2>Gerenciar Backups</h2>
         <?php if (isset($mensagem)): ?>
             <p><?php echo htmlspecialchars($mensagem); ?></p>
         <?php endif; ?>
@@ -129,5 +104,7 @@ $backups = glob($backup_dir . '*.sql');
             <?php endif; ?>
         </ul>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 </body>
 </html>

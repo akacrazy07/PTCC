@@ -137,34 +137,8 @@ $conexao->close();
     </style>
 </head>
 <body>
-    <header>
-        <h1>Gestão de Estoque - Panificadora</h1>
-        <nav>
-            <a href="controle_estoque.php">Dashboard</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="adicionar_produto.php">Adicionar Produto</a>
-                <a href="planejamento_producao.php">Planejamento de Produção</a>
-            <?php endif; ?>
-            <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="listar_produtos.php">Listar Produtos</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="relatorios.php">Relatórios</a>
-                <a href="receitas.php">Receitas</a>
-                <a href="desperdicio.php">Desperdício</a>
-                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-            <?php endif; ?>
-            <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
-                <a href="ver_logs.php">Ver Logs</a>
-                <a href="exportar_dados.php">Exportar Dados</a>
-                <a href="gerenciar_backups.php">Gerenciar Backups</a>
-            <?php endif; ?>
-            <a href="logout.php">Sair</a>
-        </nav>
-    </header>
+    <?php include 'navbar.php'; ?>
     <div class="container container-custom">
-        <h2>Gerenciar Usuários</h2>
         <?php if (!empty($mensagem)): ?>
             <p class="mensagem <?php echo strpos($mensagem, 'sucesso') !== false ? 'mensagem-success' : 'mensagem-error'; ?>">
                 <?php echo $mensagem; ?>
@@ -181,7 +155,7 @@ $conexao->close();
                 <option value="vendedor">Vendedor</option>
             </select>
             <button type="submit" name="adicionar" class="btn btn-primary">Adicionar</button>
-        </form>
+        </form> <br>
         <h3>Usuários Cadastrados</h3>
         <?php if (empty($usuarios)): ?>
             <p>Nenhum usuário cadastrado.</p>
@@ -232,5 +206,7 @@ $conexao->close();
             </table>
         <?php endif; ?>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 </body>
 </html>
