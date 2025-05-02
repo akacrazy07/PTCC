@@ -171,7 +171,158 @@ $conexao->close();
         };
     </script>
     <?php endif; ?>
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <div class="container">
+            <span class="footer-link mx-3" onclick="openModal('termsModal')">Termos de Usabilidade</span>
+            <span class="footer-link mx-3" onclick="openModal('aboutModal')">Sobre</span>
+            <span class="footer-link mx-3" onclick="openModal('contactModal')">Contatos</span>
+        </div>
+    </footer>
+
+    <!-- Overlay para escurecer e borrar o fundo -->
+    <div id="modalOverlay" class="modal-overlay"></div>
+
+    <!-- Modal para Termos de Usabilidade -->
+    <div id="termsModal" class="custom-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('termsModal')">×</span>
+            <h2>Termos de Usabilidade</h2>
+            <p>
+                Bem-vindo aos Termos de Usabilidade da RBS Ware. Ao utilizar este sistema, você concorda em:
+                <ul>
+                    <li>Não compartilhar suas credenciais de login com terceiros.</li>
+                    <li>Utilizar o sistema apenas para fins autorizados pela sua organização.</li>
+                    <li>Relatar qualquer problema ou bug ao suporte imediatamente.</li>
+                    <li>Respeitar as políticas de privacidade e proteção de dados.</li>
+                </ul>
+                A RBS Ware não se responsabiliza por usos indevidos do sistema. Para mais informações, entre em contato conosco.
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal para Sobre -->
+    <div id="aboutModal" class="custom-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('aboutModal')">×</span>
+            <h2>Sobre</h2>
+            <p>
+                A RBS Ware é uma empresa fictícia especializada em soluções de software para gestão de negócios. Fundada em 2020, nossa missão é simplificar processos e aumentar a eficiência de pequenas e médias empresas, como panificadoras, através de tecnologia inovadora.
+                Nosso sistema de Gestão de Estoque foi projetado para ajudar você a gerenciar produtos, vendas e fornecedores de forma prática e segura.
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal para Contatos -->
+    <div id="contactModal" class="custom-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('contactModal')">×</span>
+            <h2>Contatos</h2>
+            <p>
+                Entre em contato com a RBS Ware:<br>
+                <strong>Telefone:</strong> (11) 98765-4321<br>
+                <strong>E-mail:</strong> contato@rbsware.net<br>
+                <strong>Site:</strong> <a href="http://www.rbsware.net" target="_blank">www.rbsware.net</a>
+            </p>
+        </div>
+    </div>
+
+    <style>
+        /* Estilo do footer */
+        footer {
+            background-color: #343a40;
+            color: #343a40;
+            position: relative;
+        }
+        .footer-link {
+            cursor: pointer;
+            color: #000000;
+            text-decoration: none;
+        }
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Estilo do overlay (fundo escurecido e borrado) */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px); /* Efeito de blur no fundo */
+            z-index: 1000;
+        }
+
+        /* Estilo do modal */
+        .custom-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px; /* Bordas arredondadas */
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        /* Estilo do botão de fechar (X) */
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .close-btn:hover {
+            color: #ff0000;
+        }
+
+        /* Estilo do conteúdo do modal */
+        .modal-content h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            margin: 0;
+            line-height: 1.6;
+        }
+    </style>
+
+    <script>
+        // Função para abrir o modal
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        // Função para fechar o modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        // Fechar o modal ao clicar no overlay
+        document.getElementById('modalOverlay').addEventListener('click', function() {
+            document.querySelectorAll('.custom-modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+            this.style.display = 'none';
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 </body>
 </html>
