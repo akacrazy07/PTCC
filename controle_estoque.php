@@ -193,7 +193,6 @@ $conexao->close();
                     <li>Não compartilhar suas credenciais de login com terceiros.</li>
                     <li>Utilizar o sistema apenas para fins autorizados pela sua organização.</li>
                     <li>Relatar qualquer problema ou bug ao suporte imediatamente.</li>
-                    <li>Respeitar as políticas de privacidade e proteção de dados.</li>
                 </ul>
                 A RBS Ware não se responsabiliza por usos indevidos do sistema. Para mais informações, entre em contato conosco.
             </p>
@@ -206,7 +205,7 @@ $conexao->close();
             <span class="close-btn" onclick="closeModal('aboutModal')">×</span>
             <h2>Sobre</h2>
             <p>
-                A RBS Ware é uma empresa fictícia especializada em soluções de software para gestão de negócios. Fundada em 2020, nossa missão é simplificar processos e aumentar a eficiência de pequenas e médias empresas, como panificadoras, através de tecnologia inovadora.
+                A RBS Ware é uma empresa fictícia especializada em soluções de software para gestão de negócios. Fundada em 2021, nossa missão é simplificar processos e aumentar a eficiência de pequenas e médias empresas, através da nossa tecnologia web.
                 Nosso sistema de Gestão de Estoque foi projetado para ajudar você a gerenciar produtos, vendas e fornecedores de forma prática e segura.
             </p>
         </div>
@@ -219,7 +218,7 @@ $conexao->close();
             <h2>Contatos</h2>
             <p>
                 Entre em contato com a RBS Ware:<br>
-                <strong>Telefone:</strong> (11) 98765-4321<br>
+                <strong>Telefone:</strong> (61) 98765-4321<br>
                 <strong>E-mail:</strong> contato@rbsware.net<br>
                 <strong>Site:</strong> <a href="http://www.rbsware.net" target="_blank">www.rbsware.net</a>
             </p>
