@@ -6,6 +6,7 @@ if (!isset ($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true
     exit();
 }
 require_once 'conexao.php';
+require_once 'funcoes.php';
 
 $mensagem = '';
 
@@ -29,6 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['produto_id']) && isset
         $stmt->bind_param("ii", $produto_id, $quantidade);
         if ($stmt->execute()) {
             $mensagem = "Desperdício registrado com sucesso!";
+            $acao = "Registrou desperdício de $quantidade unidades do produto ID $produto_id";
+            registrarLog($conexao, $_SESSION['usuario_id'], $acao);
         } else {
             $mensagem = "Erro ao registrar desperdício" . $conexao->error;
         }

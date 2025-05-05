@@ -5,6 +5,7 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true 
     exit();
 }
 require_once 'conexao.php';
+require_once 'funcoes.php';
 
 // Diretório para salvar os backups
 $backup_dir = 'backups/';
@@ -14,8 +15,8 @@ if (!is_dir($backup_dir)) {
     }
 }
 
-// Caminho completo para mysqldump e mysql (ajuste conforme o caminho no seu XAMPP)
-$mysqldump_path = '"C:\xampp\mysql\bin\mysqldump.exe"'; // No Windows, use aspas e o caminho completo
+// Caminho completo para mysqldump e mysql 
+$mysqldump_path = '"C:\xampp\mysql\bin\mysqldump.exe"'; 
 $mysql_path = '"C:\xampp\mysql\bin\mysql.exe"';
 
 // Realizar backup
@@ -28,6 +29,8 @@ if (isset($_POST['realizar_backup'])) {
 
     if ($return_var === 0) {
         $mensagem = "Backup realizado com sucesso! Arquivo: " . basename($backup_file);
+        $acao = "Fez backup do banco de dados.";
+        registrarLog($conexao, $_SESSION['usuario_id'], $acao);
     } else {
         $mensagem = "Erro ao realizar o backup. Detalhes: " . implode("\n", $output);
     }
@@ -47,6 +50,8 @@ if (isset($_POST['restaurar_backup'])) {
 
         if ($return_var === 0) {
             $mensagem = "Backup restaurado com sucesso!";
+            $acao = "Restaurou o backup do banco de dados: " . basename($backup_file);
+            registrarLog($conexao, $_SESSION['usuario_id'], $acao);
         } else {
             $mensagem = "Erro ao restaurar o backup. Detalhes: " . implode("\n", $output);
         }

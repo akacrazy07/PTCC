@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || $_SESSION['perfil'] !== 'admin') {
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || ($_SESSION['perfil'] !== 'admin' && $_SESSION['perfil'] !== 'gerente')) {
     header("Location: login.html");
     exit();
 }

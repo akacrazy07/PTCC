@@ -120,6 +120,14 @@ tr:hover {
     font-size: 14px;
     transition: background-color 0.3s ease, transform 0.2s ease;
 }
+.btn-info {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+.btn-info:hover {
+    background-color: #0b5ed7 !important;
+    border-color: #0a58ca !important;
+}
 .btn-editar {
     background-color: #3498db;
     color: white;

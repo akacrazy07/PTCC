@@ -6,6 +6,7 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true 
     exit();
 }
 require_once 'conexao.php';
+require_once 'funcoes.php';
 
 $mensagem = '';
 $id = intval($_GET['id']);
@@ -86,6 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
 
                 $mensagem = "Produto atualizado com sucesso!";
+                $acao = "Atualizou produto ID $id";
+                registrarLog($conexao, $_SESSION['usuario_id'], $acao);
                 // Recarregar dados do produto após atualização
                 $stmt = $conexao->prepare("SELECT * FROM produtos WHERE id = ?");
                 $stmt->bind_param("i", $id);

@@ -1,10 +1,11 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || $_SESSION['perfil'] !== 'admin') {
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || ($_SESSION['perfil'] !== 'admin' && $_SESSION['perfil'] !== 'gerente')) {
     header("Location: login.html");
     exit();
 }
 require_once 'conexao.php';
+require_once 'funcoes.php';
 
 // Listar produtos pra formulário
 $sql_produtos = "SELECT id, nome_produto FROM produtos";
@@ -52,6 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($stmt->execute()) {
         header("Location: gerenciar_promocoes.php?sucesso=1");
+        $acao = "cadastrou/atualizou a promoção: " . $nome ;
+        registrarLog($conexao, $_SESSION['usuario_id'], $acao);
     } else {
         header("Location: gerenciar_promocoes.php?erro=sql");
     }
