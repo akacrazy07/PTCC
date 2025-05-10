@@ -15,7 +15,8 @@ $produtos = $resultado_produtos->fetch_all(MYSQLI_ASSOC);
 $historico = [];
 $produto_id_filtro = isset($_POST['produto_id']) ? intval($_POST['produto_id']) : 0;
 
-$sql_historico = "SELECT h.*, p.nome_produto, u.nome as nome_usuario 
+// Ajustei 'u.nome' para 'u.usuario', pois a coluna correta em 'usuarios' é 'usuario'
+$sql_historico = "SELECT h.*, p.nome_produto, u.usuario as nome_usuario 
                  FROM historico_precos h 
                  JOIN produtos p ON h.produto_id = p.id 
                  JOIN usuarios u ON h.usuario_id = u.id";
@@ -59,7 +60,7 @@ $conexao->close();
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <button type="submit">Filtrar</button>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
             </form>
         </div>
 

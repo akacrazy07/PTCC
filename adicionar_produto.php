@@ -115,7 +115,7 @@ $conexao->close();
             </select>
             <input type="date" name="data_validade" placeholder="Data de Validade (opcional)">
             <input type="file" name="imagem" accept=".jpg, .jpeg, .png" placeholder="Imagem do Produto">
-            <button type="submit">Adicionar Produto</button>
+            <button type="submit" class="btn btn-primary">Adicionar Produto</button>
         </form>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>

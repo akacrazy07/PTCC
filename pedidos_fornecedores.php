@@ -336,7 +336,7 @@ $conexao->close();
             <div class="alert alert-info"><?php echo htmlspecialchars($mensagem); ?></div>
         <?php endif; ?>
         <form method="POST" action="pedidos_fornecedores.php" class="mb-3">
-            <button type="submit" name="verificar_estoque" class="btn btn-warning">Verificar Estoque Baixo</button>
+            <button type="submit" name="verificar_estoque" class="btn btn-secondary">Verificar Estoque Baixo</button>
         </form>
 
         <?php if (!empty($produtos_baixo_estoque)): ?>

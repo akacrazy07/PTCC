@@ -81,7 +81,7 @@ $backups = glob($backup_dir . '*.sql');
         <!-- Formulário para realizar backup -->
         <h3>Realizar Backup</h3>
         <form method="POST" action="gerenciar_backups.php">
-            <button type="submit" name="realizar_backup">Realizar Backup Agora</button>
+            <button type="submit" class="btn btn-primary" name="realizar_backup">Realizar Backup Agora</button>
         </form>
 
         <!-- Formulário para restaurar backup -->
@@ -94,7 +94,7 @@ $backups = glob($backup_dir . '*.sql');
                     <option value="<?php echo $backup; ?>"><?php echo basename($backup); ?></option>
                 <?php endforeach; ?>
             </select><br>
-            <button type="submit" name="restaurar_backup">Restaurar Backup</button>
+            <button type="submit" class="btn btn-primary" name="restaurar_backup">Restaurar Backup</button>
         </form>
 
         <!-- Listar backups -->

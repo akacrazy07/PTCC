@@ -77,7 +77,7 @@ $conexao->close();
                 <?php endforeach; ?>
             </select>
             <input type="number" name="quantidade" placeholder="Quantidade desperdiçada" required min="1">
-            <button type="submit">Registrar</button>
+            <button type="submit" class="btn btn-primary">Registrar</button>
         </form>
         <br>
         <h3>Desperdício dos Últimos 7 Dias</h3>

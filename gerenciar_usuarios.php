@@ -7,7 +7,8 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true 
 require_once 'conexao.php';
 
 // Função para validar CPF
-function validarCPF($cpf) {
+function validarCPF($cpf)
+{
     $cpf = preg_replace('/[^0-9]/', '', $cpf);
     if (strlen($cpf) != 11) return false;
     if (preg_match('/(\d)\1{10}/', $cpf)) return false;
@@ -20,6 +21,21 @@ function validarCPF($cpf) {
         if ($cpf[$c] != $d) return false;
     }
     return true;
+}
+
+// Função para verificar a senha do admin primário
+function verificarSenhaAdminPrimario($conexao, $senha_fornecida)
+{
+    $stmt = $conexao->prepare("SELECT senha FROM usuarios WHERE id = 1 AND perfil = 'admin'");
+    $stmt->execute();
+    $resultado = $stmt->get_result();
+    if ($resultado->num_rows > 0) {
+        $admin_primario = $resultado->fetch_assoc();
+        $stmt->close();
+        return password_verify($senha_fornecida, $admin_primario['senha']);
+    }
+    $stmt->close();
+    return false;
 }
 
 $mensagem = '';
@@ -51,28 +67,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['adicionar'])) {
     }
 }
 
-if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
-    $id_excluir = intval($_GET['excluir']);
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['excluir'])) {
+    $id_excluir = intval($_POST['excluir']);
     $stmt = $conexao->prepare("SELECT usuario, perfil FROM usuarios WHERE id = ?");
     $stmt->bind_param("i", $id_excluir);
     $stmt->execute();
     $usuario_excluido = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    $stmt = $conexao->prepare("DELETE FROM usuarios WHERE id = ? AND perfil != 'admin'");
-    $stmt->bind_param("i", $id_excluir);
-    if ($stmt->execute() && $stmt->affected_rows > 0) {
-        $mensagem = "Usuário excluído com sucesso!";
-        $usuario_id = $_SESSION['usuario_id'];
-        $acao = "Excluiu usuário '{$usuario_excluido['usuario']}' ({$usuario_excluido['perfil']})";
-        $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
-        $stmt_log->bind_param("is", $usuario_id, $acao);
-        $stmt_log->execute();
-        $stmt_log->close();
+    if ($usuario_excluido['perfil'] === 'admin') {
+        if (isset($_POST['senha_admin']) && verificarSenhaAdminPrimario($conexao, $_POST['senha_admin'])) {
+            $stmt = $conexao->prepare("DELETE FROM usuarios WHERE id = ?");
+            $stmt->bind_param("i", $id_excluir);
+            if ($stmt->execute() && $stmt->affected_rows > 0) {
+                $mensagem = "Usuário excluído com sucesso!";
+                $usuario_id = $_SESSION['usuario_id'];
+                $acao = "Excluiu usuário '{$usuario_excluido['usuario']}' ({$usuario_excluido['perfil']})";
+                $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
+                $stmt_log->bind_param("is", $usuario_id, $acao);
+                $stmt_log->execute();
+                $stmt_log->close();
+            } else {
+                $mensagem = "Erro ao excluir usuário.";
+            }
+            $stmt->close();
+        } else {
+            $mensagem = "Senha do admin primário incorreta ou não fornecida!";
+        }
     } else {
-        $mensagem = "Erro ao excluir usuário ou usuário é admin.";
+        $stmt = $conexao->prepare("DELETE FROM usuarios WHERE id = ?");
+        $stmt->bind_param("i", $id_excluir);
+        if ($stmt->execute() && $stmt->affected_rows > 0) {
+            $mensagem = "Usuário excluído com sucesso!";
+            $usuario_id = $_SESSION['usuario_id'];
+            $acao = "Excluiu usuário '{$usuario_excluido['usuario']}' ({$usuario_excluido['perfil']})";
+            $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
+            $stmt_log->bind_param("is", $usuario_id, $acao);
+            $stmt_log->execute();
+            $stmt_log->close();
+        } else {
+            $mensagem = "Erro ao excluir usuário.";
+        }
+        $stmt->close();
     }
-    $stmt->close();
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['editar'])) {
@@ -83,14 +120,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['editar'])) {
     $perfil = $_POST['perfil'];
     $senha = !empty($_POST['senha']) ? password_hash($_POST['senha'], PASSWORD_DEFAULT) : null;
 
+    $stmt = $conexao->prepare("SELECT perfil FROM usuarios WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $usuario_editado = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
     if (!validarCPF($cpf)) {
         $mensagem = "CPF inválido!";
+    } elseif ($usuario_editado['perfil'] === 'admin' && (!isset($_POST['senha_admin']) || !verificarSenhaAdminPrimario($conexao, $_POST['senha_admin']))) {
+        $mensagem = "Senha do admin primário incorreta ou não fornecida!";
     } else {
         $sql = "UPDATE usuarios SET usuario = ?, cpf = ?, email = ?, perfil = ?";
         if ($senha) {
             $sql .= ", senha = ?";
         }
-        $sql .= " WHERE id = ? AND perfil != 'admin'";
+        $sql .= " WHERE id = ?";
         $stmt = $conexao->prepare($sql);
         if ($senha) {
             $stmt->bind_param("sssssi", $usuario, $cpf, $email, $perfil, $senha, $id);
@@ -106,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['editar'])) {
             $stmt_log->execute();
             $stmt_log->close();
         } else {
-            $mensagem = "Erro ao editar usuário ou usuário é admin.";
+            $mensagem = "Erro ao editar usuário.";
         }
         $stmt->close();
     }
@@ -118,6 +163,7 @@ $conexao->close();
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -130,12 +176,49 @@ $conexao->close();
             max-width: 1200px;
             margin: 40px auto;
         }
+
         .form-group-spacing input,
         .form-group-spacing select {
             margin: 5px 0;
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 5px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
+
 <body>
     <?php include 'navbar.php'; ?>
     <div class="container container-custom">
@@ -147,10 +230,11 @@ $conexao->close();
         <h3>Adicionar Usuário</h3>
         <form action="gerenciar_usuarios.php" method="post" class="form-group-spacing">
             <input type="text" name="usuario" placeholder="Usuário" required>
-            <input type="text" name="cpf" placeholder="CPF (ex: 123.456.789-00)" required>
+            <input type="text" name="cpf" placeholder="CPF (ex: 123.456.789-00)" required oninput="formatarCPF(this)">
             <input type="email" name="email" placeholder="Email" required>
             <input type="password" name="senha" placeholder="Senha" required>
             <select name="perfil" required class="form-select">
+                <option value="admin">Admin</option>
                 <option value="gerente">Gerente</option>
                 <option value="vendedor">Vendedor</option>
             </select>
@@ -178,27 +262,8 @@ $conexao->close();
                             <td><?php echo htmlspecialchars($usuario['email']); ?></td>
                             <td><?php echo htmlspecialchars($usuario['perfil']); ?></td>
                             <td>
-                                <?php if ($usuario['perfil'] !== 'admin'): ?>
-                                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('editar-<?php echo $usuario['id']; ?>').style.display='block'">Editar</button>
-                                    <a href="gerenciar_usuarios.php?excluir=<?php echo $usuario['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que quer excluir este usuário?');">Excluir</a>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr id="editar-<?php echo $usuario['id']; ?>" style="display:none;">
-                            <td colspan="5">
-                                <form action="gerenciar_usuarios.php" method="post" class="form-group-spacing">
-                                    <input type="hidden" name="id" value="<?php echo $usuario['id']; ?>">
-                                    <input type="text" name="usuario" value="<?php echo htmlspecialchars($usuario['usuario']); ?>" required>
-                                    <input type="text" name="cpf" value="<?php echo htmlspecialchars($usuario['cpf']); ?>" required>
-                                    <input type="email" name="email" value="<?php echo htmlspecialchars($usuario['email']); ?>" required>
-                                    <select name="perfil" required class="form-select">
-                                        <option value="gerente" <?php echo $usuario['perfil'] === 'gerente' ? 'selected' : ''; ?>>Gerente</option>
-                                        <option value="vendedor" <?php echo $usuario['perfil'] === 'vendedor' ? 'selected' : ''; ?>>Vendedor</option>
-                                    </select>
-                                    <input type="password" name="senha" placeholder="Nova senha (opcional)">
-                                    <button type="submit" name="editar" class="btn btn-success btn-sm">Salvar</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editar-<?php echo $usuario['id']; ?>').style.display='none'">Cancelar</button>
-                                </form>
+                                <button class="btn btn-primary btn-sm" onclick="abrirModalEditar(<?php echo $usuario['id']; ?>, '<?php echo $usuario['perfil']; ?>', '<?php echo htmlspecialchars($usuario['usuario']); ?>', '<?php echo htmlspecialchars($usuario['cpf']); ?>', '<?php echo htmlspecialchars($usuario['email']); ?>')">Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="abrirModalExcluir(<?php echo $usuario['id']; ?>, '<?php echo $usuario['perfil']; ?>')">Excluir</button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -206,7 +271,118 @@ $conexao->close();
             </table>
         <?php endif; ?>
     </div>
+
+    <!-- Modal para confirmação de exclusão -->
+    <div id="modalExcluir" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModalExcluir()">×</span>
+            <h3>Confirmação de Exclusão</h3>
+            <p>Tem certeza que quer excluir este usuário?</p>
+            <form id="formExcluir" action="gerenciar_usuarios.php" method="post">
+                <input type="hidden" name="excluir" id="excluirId">
+                <div id="senhaAdminExcluir" style="display: none;">
+                    <p>Insira a senha do admin primário:</p>
+                    <input type="password" name="senha_admin" id="senhaAdminInputExcluir">
+                </div>
+                <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para edição -->
+    <div id="modalEditar" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModalEditar()">×</span>
+            <h3>Editar Usuário</h3>
+            <form id="formEditar" action="gerenciar_usuarios.php" method="post">
+                <input type="hidden" name="id" id="editarId">
+                <input type="text" name="usuario" id="editarUsuario" required>
+                <input type="text" name="cpf" id="editarCpf" required oninput="formatarCPF(this)">
+                <input type="email" name="email" id="editarEmail" required>
+                <select name="perfil" id="editarPerfil" required class="form-select">
+                    <option value="admin">Admin</option>
+                    <option value="gerente">Gerente</option>
+                    <option value="vendedor">Vendedor</option>
+                </select>
+                <input type="password" name="senha" placeholder="Nova senha (opcional)">
+                <div id="senhaAdminEditar" style="display: none;">
+                    <p>Insira a senha do admin primário:</p>
+                    <input type="password" name="senha_admin" id="senhaAdminInputEditar">
+                </div>
+                <br>
+                <button type="submit" name="editar" class="btn btn-success">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function formatarCPF(campo) {
+            let value = campo.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+
+            if (value.length > 9) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            } else if (value.length > 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3');
+            } else if (value.length > 3) {
+                value = value.replace(/(\d{3})(\d{3})/, '$1.$2');
+            } else if (value.length > 0) {
+                value = value.replace(/(\d{3})/, '$1');
+            }
+
+            campo.value = value;
+        }
+
+        function abrirModalExcluir(id, perfil) {
+            document.getElementById('excluirId').value = id;
+            const senhaAdminDiv = document.getElementById('senhaAdminExcluir');
+            const senhaAdminInput = document.getElementById('senhaAdminInputExcluir');
+            if (perfil === 'admin') {
+                senhaAdminDiv.style.display = 'block';
+                senhaAdminInput.required = true;
+            } else {
+                senhaAdminDiv.style.display = 'none';
+                senhaAdminInput.required = false;
+            }
+            document.getElementById('modalExcluir').style.display = 'block';
+        }
+
+        function fecharModalExcluir() {
+            document.getElementById('modalExcluir').style.display = 'none';
+        }
+
+        function abrirModalEditar(id, perfil, usuario, cpf, email) {
+            document.getElementById('editarId').value = id;
+            document.getElementById('editarUsuario').value = usuario;
+            document.getElementById('editarCpf').value = cpf;
+            document.getElementById('editarEmail').value = email;
+            document.getElementById('editarPerfil').value = perfil;
+            const senhaAdminDiv = document.getElementById('senhaAdminEditar');
+            const senhaAdminInput = document.getElementById('senhaAdminInputEditar');
+            if (perfil === 'admin') {
+                senhaAdminDiv.style.display = 'block';
+                senhaAdminInput.required = true;
+            } else {
+                senhaAdminDiv.style.display = 'none';
+                senhaAdminInput.required = false;
+            }
+            document.getElementById('modalEditar').style.display = 'block';
+        }
+
+        function fecharModalEditar() {
+            document.getElementById('modalEditar').style.display = 'none';
+        }
+
+        // Fechar modal ao clicar fora
+        window.onclick = function(event) {
+            if (event.target.className === 'modal') {
+                fecharModalExcluir();
+                fecharModalEditar();
+            }
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 </body>
+
 </html>

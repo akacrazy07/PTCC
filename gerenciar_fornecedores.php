@@ -48,12 +48,26 @@ if (isset($_GET['excluir'])) {
     $id = $_GET['excluir'];
     $conexao->begin_transaction();
     try {
+        // Deletar pedidos associados em pedidos_fornecedores
+        $sql_pedidos = "DELETE FROM pedidos_fornecedores WHERE fornecedor_id = ?";
+        $stmt_pedidos = $conexao->prepare($sql_pedidos);
+        $stmt_pedidos->bind_param("i", $id);
+        $stmt_pedidos->execute();
+        $stmt_pedidos->close();
+
         // Deletar produtos associados (que deletará vendas automaticamente via CASCADE)
         $sql_produtos = "DELETE FROM produtos WHERE fornecedor_id = ?";
         $stmt_produtos = $conexao->prepare($sql_produtos);
         $stmt_produtos->bind_param("i", $id);
         $stmt_produtos->execute();
         $stmt_produtos->close();
+
+        // Deletar produtos associados em produtos_fornecedores
+        $sql_produtos_fornecedores = "DELETE FROM produtos_fornecedores WHERE fornecedor_id = ?";
+        $stmt_produtos_fornecedores = $conexao->prepare($sql_produtos_fornecedores);
+        $stmt_produtos_fornecedores->bind_param("i", $id);
+        $stmt_produtos_fornecedores->execute();
+        $stmt_produtos_fornecedores->close();
 
         // Deletar o fornecedor
         $sql_fornecedor = "DELETE FROM fornecedores WHERE id = ?";
@@ -64,6 +78,8 @@ if (isset($_GET['excluir'])) {
 
         $conexao->commit();
         $mensagem = "Fornecedor excluído com sucesso!";
+        $acao = "Excluiu o fornecedor ID {$id}";
+        registrarLog($conexao, $_SESSION['usuario_id'], $acao);
     } catch (Exception $e) {
         $conexao->rollback();
         $mensagem = "Erro ao excluir fornecedor: " . $e->getMessage();
@@ -135,7 +151,6 @@ $conexao->close();
             });
         });
     </script>
-
 </head>
 
 <body>
@@ -214,10 +229,10 @@ $conexao->close();
                             <td><?php echo $fornecedor['descrição'] ? htmlspecialchars($fornecedor['descrição']) : '-'; ?></td>
                             <td><?php echo $fornecedor['comentarios'] ? htmlspecialchars($fornecedor['comentarios']) : '-'; ?></td>
                             <td>
-                                <a href="editar_fornecedor.php?id=<?php echo $fornecedor['id']; ?>" class="btn btn-warning btn-sm">Editar</a>
+                                <a href="editar_fornecedor.php?id=<?php echo $fornecedor['id']; ?>" class="btn btn-primary btn-sm">Editar</a>
                                 <a href="gerenciar_fornecedores.php?excluir=<?php echo $fornecedor['id']; ?>"
                                     class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Tem certeza que deseja excluir este fornecedor?')">Excluir</a>
+                                    onclick="return confirm('Tem certeza que deseja excluir este fornecedor? Todos os pedidos e produtos associados serão excluídos.')">Excluir</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

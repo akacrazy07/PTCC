@@ -181,8 +181,8 @@ $conexao->close();
                     <option value="<?php echo $receita['id']; ?>"><?php echo htmlspecialchars($receita['nome']); ?></option>
                 <?php endforeach; ?>
             </select>
-            <input type="number" name="quantidade" placeholder="Quantidade a produzir" required min="1">
-            <button type="submit" name="calcular">Calcular</button>
+            <input type="number" name="quantidade" placeholder="Quantidade a produzir" required min="1"> <br>
+            <button type="submit" class="btn btn-primary" name="calcular">Calcular</button>
         </form> <br>
         <h3>Receitas Cadastradas</h3>
         <?php if (empty($receitas)): ?>
