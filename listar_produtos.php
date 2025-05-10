@@ -71,6 +71,7 @@ $conexao->close();
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -78,36 +79,53 @@ $conexao->close();
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .alerta-validade { background-color: #ffcccc; }
+        .alerta-validade {
+            background-color: #ffcccc;
+        }
     </style>
+    <script>
+        function showPopup(descricao) {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = 0;
+            overlay.style.left = 0;
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            overlay.style.backdropFilter = 'blur(5px)';
+            overlay.style.webkitBackdropFilter = 'blur(5px)';
+            overlay.style.zIndex = 1000;
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+
+            const popup = document.createElement('div');
+            popup.style.backgroundColor = '#fff';
+            popup.style.padding = '20px';
+            popup.style.borderRadius = '5px';
+            popup.style.maxWidth = '400px';
+            popup.style.textAlign = 'center';
+            popup.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+            popup.innerHTML = `
+        <h4>Descrição Completa</h4>
+        <p>${descricao}</p>
+        <button onclick="this.parentElement.parentElement.remove()" class="btn btn-secondary mt-3">Fechar</button>
+    `;
+
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+
+            overlay.onclick = function(e) {
+                if (e.target === overlay) {
+                    overlay.remove();
+                }
+            };
+        }
+    </script>
 </head>
+
 <body>
-    <header>
-        <h1>Gestão de Estoque - Panificadora</h1>
-        <nav>
-            <a href="controle_estoque.php">Dashboard</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="adicionar_produto.php">Adicionar Produto</a>
-                <a href="planejamento_producao.php">Planejamento de Produção</a>
-            <?php endif; ?>
-            <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="listar_produtos.php">Listar Produtos</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="relatorios.php">Relatórios</a>
-                <a href="receitas.php">Receitas</a>
-                <a href="desperdicio.php">Desperdício</a>
-                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-            <?php endif; ?>
-            <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
-                <a href="ver_logs.php">Ver Logs</a>
-                <a href="exportar_dados.php">Exportar Dados</a>
-                <a href="gerenciar_backups.php">Gerenciar Backups</a>
-            <?php endif; ?>
-            <a href="logout.php">Sair</a>
-        </nav>
-    </header>
+    <?php include 'navbar.php'; ?>
     <div class="container">
         <h2>Produtos em Estoque</h2>
         <?php if (isset($mensagem)): ?>
@@ -135,6 +153,7 @@ $conexao->close();
                         <th>Descrição</th>
                         <th>Quantidade</th>
                         <th>Preço</th>
+                        <th>Origem</th>
                         <th>Data de Validade</th>
                         <th>Ações</th>
                     </tr>
@@ -146,6 +165,9 @@ $conexao->close();
                         $validade = $produto['data_validade'] ? new DateTime($produto['data_validade']) : null;
                         $dias_restantes = $validade ? $hoje->diff($validade)->days : null;
                         $alerta = $validade && $dias_restantes <= 7 && $hoje <= $validade;
+                        $origem = $produto['fornecedor_id'] !== null ? 'Fornecedor' : 'Interno';
+                        $mostrar_popup = $produto['descricao'] && strlen($produto['descricao']) > 10;
+                        $descricao_exibir = $mostrar_popup ? '' : htmlspecialchars($produto['descricao'] ?? '');
                         ?>
                         <tr <?php echo $alerta ? 'class="alerta-validade"' : ''; ?>>
                             <td>
@@ -157,9 +179,16 @@ $conexao->close();
                             </td>
                             <td><?php echo htmlspecialchars($produto['nome_produto']); ?></td>
                             <td><?php echo htmlspecialchars($produto['categoria_nome'] ?? 'Sem categoria'); ?></td>
-                            <td><?php echo htmlspecialchars($produto['descricao']); ?></td>
+                            <td>
+                                <?php if ($mostrar_popup): ?>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="showPopup('<?php echo htmlspecialchars($produto['descricao']); ?>')">Ver Mais</button>
+                                <?php else: ?>
+                                    <?php echo $descricao_exibir; ?>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo htmlspecialchars($produto['quantidade']); ?></td>
                             <td>R$ <?php echo number_format($produto['preco'], 2, ',', '.'); ?></td>
+                            <td><?php echo $origem; ?></td>
                             <td>
                                 <?php echo $produto['data_validade'] ? htmlspecialchars(date('d/m/Y', strtotime($produto['data_validade']))) : 'Não definida'; ?>
                                 <?php if ($alerta): ?>
@@ -178,5 +207,8 @@ $conexao->close();
             </table>
         <?php endif; ?>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 </body>
+
 </html>

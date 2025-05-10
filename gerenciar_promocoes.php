@@ -1,10 +1,11 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || $_SESSION['perfil'] !== 'admin') {
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || ($_SESSION['perfil'] !== 'admin' && $_SESSION['perfil'] !== 'gerente')) {
     header("Location: login.html");
     exit();
 }
 require_once 'conexao.php';
+require_once 'funcoes.php';
 
 // Listar produtos pra formulário
 $sql_produtos = "SELECT id, nome_produto FROM produtos";
@@ -20,6 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data_fim = $_POST['data_fim'];
     $produto_id = $_POST['produto_id'];
     $id = !empty($_POST['id']) ? $_POST['id'] : null;
+
+    // Validar tipo
+    $tipos_permitidos = ['percentual', 'compre_por'];
+    if (!in_array($tipo, $tipos_permitidos)) {
+        header("Location: gerenciar_promocoes.php?erro=tipo_invalido");
+        exit();
+    }
 
     // Validar datas
     if (empty($data_inicio) || empty($data_fim)) {
@@ -52,6 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($stmt->execute()) {
         header("Location: gerenciar_promocoes.php?sucesso=1");
+        $acao = "cadastrou/atualizou a promoção: " . $nome;
+        registrarLog($conexao, $_SESSION['usuario_id'], $acao);
     } else {
         header("Location: gerenciar_promocoes.php?erro=sql");
     }
@@ -86,128 +96,146 @@ $conexao->close();
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Promoções - Panificadora</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .table-responsive {
+            margin-top: 2rem;
+        }
+
+        .alert {
+            margin-top: 1rem;
+        }
+    </style>
 </head>
+
 <body>
-    <header>
-        <h1>Gestão de Estoque - Panificadora</h1>
-        <nav>
-            <a href="controle_estoque.php">Dashboard</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="adicionar_produto.php">Adicionar Produto</a>
-                <a href="planejamento_producao.php">Planejamento de Produção</a>
-            <?php endif; ?>
-            <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="listar_produtos.php">Listar Produtos</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="relatorios.php">Relatórios</a>
-                <a href="receitas.php">Receitas</a>
-                <a href="desperdicio.php">Desperdício</a>
-                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-            <?php endif; ?>
-            <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
-                <a href="ver_logs.php">Ver Logs</a>
-                <a href="exportar_dados.php">Exportar Dados</a>
-                <a href="gerenciar_backups.php">Gerenciar Backups</a>
-            <?php endif; ?>
-            <a href="logout.php">Sair</a>
-        </nav>
-    </header>
-    <div class="container">
-        <h2>Gerenciar Promoções</h2>
+    <?php include 'navbar.php'; ?>
+    <div class="container mt-5">
         <?php if (isset($_GET['sucesso'])): ?>
-            <p style="color: green;">Promoção salva com sucesso!</p>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                Promoção salva com sucesso!
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         <?php endif; ?>
         <?php if (isset($_GET['erro'])): ?>
-            <p style="color: red;">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <?php
                 if ($_GET['erro'] === 'data_vazia') echo "Erro: As datas de início e fim são obrigatórias.";
                 elseif ($_GET['erro'] === 'data_invalida') echo "Erro: Data inválida.";
                 elseif ($_GET['erro'] === 'data_inicio_maior') echo "Erro: A data de início não pode ser maior que a data de fim.";
                 elseif ($_GET['erro'] === 'produto_nao_selecionado') echo "Erro: Selecione um produto para a promoção.";
+                elseif ($_GET['erro'] === 'tipo_invalido') echo "Erro: Tipo de promoção inválido.";
                 else echo "Erro ao salvar a promoção.";
                 ?>
-            </p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         <?php endif; ?>
 
-        <!-- formulário para cadastrar/editar promoção -->
-        <form method="POST" action="gerenciar_promocoes.php">
-            <input type="hidden" name="id" value="">
-            <label for="nome">Nome da Promoção:</label>
-            <input type="text" name="nome" required><br>
+        <!-- Formulário para cadastrar/editar promoção -->
+        <div class="card p-4 shadow-sm">
+            <h2 class="mb-4">Cadastrar/Editar Promoção</h2>
+            <form method="POST" action="gerenciar_promocoes.php">
+                <input type="hidden" name="id" value="">
+                <div class="form-group">
+                    <label for="nome" class="form-label">Nome da Promoção:</label>
+                    <input type="text" class="form-control" id="nome" name="nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="produto_id" class="form-label">Produto:</label>
+                    <select class="form-select" name="produto_id" required>
+                        <option value="">Selecione um produto</option>
+                        <?php foreach ($produtos as $produto): ?>
+                            <option value="<?php echo $produto['id']; ?>">
+                                <?php echo htmlspecialchars($produto['nome_produto']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="tipo" class="form-label">Tipo de Promoção:</label>
+                    <select class="form-select" name="tipo" required>
+                        <option value="percentual">Desconto Percentual</option>
+                        <option value="compre_por">Compre X por Y</option>
+                    </select>
+                    <small class="form-text text-muted">
+                        - Desconto Percentual: Insira o percentual (ex.: 10 para 10%).<br>
+                        - Compre X por Y: Insira "X por Y" (ex.: 3 por 2 para comprar 3 e pagar o valor de 2).
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="valor" class="form-label">Valor:</label>
+                    <input type="text" class="form-control" id="valor" name="valor" required placeholder="Ex.: 10 ou 3 por 2">
+                </div>
+                <div class="form-group">
+                    <label for="data_inicio" class="form-label">Data Início:</label>
+                    <input type="date" class="form-control" name="data_inicio" required>
+                </div>
+                <div class="form-group">
+                    <label for="data_fim" class="form-label">Data Fim:</label>
+                    <input type="date" class="form-control" name="data_fim" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-3">Salvar Promoção</button>
+            </form>
+        </div>
 
-            <label for="produto_id">Produto:</label>
-            <select name="produto_id" required>
-                <option value="">Selecione um produto</option>
-                <?php foreach ($produtos as $produto): ?>
-                    <option value="<?php echo $produto['id']; ?>">
-                        <?php echo htmlspecialchars($produto['nome_produto']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select><br>
-
-            <label for="tipo">Tipo de Promoção:</label>
-            <select name="tipo" required>
-                <option value="percentual">Desconto Percentual</option>
-                <option value="leve_pague">Leve X, Pague Y</option>
-            </select><br>
-
-            <label for="valor">Valor:</label>
-            <input type="number" step="0.01" name="valor" required placeholder="Ex.: 10 para 10% ou 2 para Leve 3, Pague 2"><br>
-
-            <label for="data_inicio">Data Início:</label>
-            <input type="date" name="data_inicio" required><br>
-
-            <label for="data_fim">Data Fim:</label>
-            <input type="date" name="data_fim" required><br>
-
-            <button type="submit">Salvar Promoção</button>
-        </form>
-
-        <!-- listar promoções -->
-        <h3>Promoções Cadastradas</h3>
-        <table border="1">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Produto</th>
-                    <th>Tipo</th>
-                    <th>Valor</th>
-                    <th>Data Início</th>
-                    <th>Data Fim</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($promocoes)): ?>
-                    <?php foreach ($promocoes as $promocao): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($promocao['nome']); ?></td>
-                            <td><?php echo htmlspecialchars($promocao['nome_produto']); ?></td>
-                            <td><?php echo $promocao['tipo'] === 'percentual' ? 'Desconto Percentual' : 'Leve X, Pague Y'; ?></td>
-                            <td><?php echo htmlspecialchars($promocao['valor']); ?></td>
-                            <td><?php echo date('d/m/Y', strtotime($promocao['data_inicio'])); ?></td>
-                            <td><?php echo date('d/m/Y', strtotime($promocao['data_fim'])); ?></td>
-                            <td>
-                                <a href="editar_promocao.php?id=<?php echo $promocao['id']; ?>">Editar</a> |
-                                <a href="gerenciar_promocoes.php?excluir=<?php echo $promocao['id']; ?>" 
-                                   onclick="return confirm('Tem certeza que deseja excluir esta promoção?')">Excluir</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
+        <!-- Listar promoções -->
+        <div class="table-responsive mt-5">
+            <h3 class="mb-4">Promoções Cadastradas</h3>
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
                     <tr>
-                        <td colspan="7">Nenhuma promoção cadastrada.</td>
+                        <th>Nome</th>
+                        <th>Produto</th>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Data Início</th>
+                        <th>Data Fim</th>
+                        <th>Ações</th>
                     </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php if (!empty($promocoes)): ?>
+                        <?php foreach ($promocoes as $promocao): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($promocao['nome']); ?></td>
+                                <td><?php echo htmlspecialchars($promocao['nome_produto']); ?></td>
+                                <td><?php echo $promocao['tipo'] === 'percentual' ? 'Desconto Percentual' : 'Compre X por Y'; ?></td>
+                                <td>
+                                    <?php echo $promocao['tipo'] === 'percentual'
+                                        ? htmlspecialchars($promocao['valor']) . '%'
+                                        : htmlspecialchars($promocao['valor']); ?>
+                                </td>
+                                <td><?php echo date('d/m/Y', strtotime($promocao['data_inicio'])); ?></td>
+                                <td><?php echo date('d/m/Y', strtotime($promocao['data_fim'])); ?></td>
+                                <td>
+                                    <a href="editar_promocao.php?id=<?php echo $promocao['id']; ?>" class="btn btn-warning btn-sm">Editar</a>
+                                    <a href="gerenciar_promocoes.php?excluir=<?php echo $promocao['id']; ?>"
+                                        class="btn btn-danger btn-sm ms-2"
+                                        onclick="return confirm('Tem certeza que deseja excluir esta promoção?')">Excluir</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="7" class="text-center">Nenhuma promoção cadastrada.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

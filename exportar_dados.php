@@ -1,13 +1,14 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || !in_array($_SESSION['perfil'], ['admin'])) {
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || !in_array($_SESSION['perfil'], ['admin', 'gerente'])) {
     header("Location: login.html");
     exit();
 }
 require_once 'conexao.php';
 
 // Função pra registrar o log de exportação
-function registrarLogExportacao($conexao, $usuario_id, $tipo_dados, $formato) {
+function registrarLogExportacao($conexao, $usuario_id, $tipo_dados, $formato)
+{
     $sql = "INSERT INTO log_exportacoes (usuario_id, tipo_dados, formato, data_exportacao) VALUES (?, ?, ?, NOW())";
     $stmt = $conexao->prepare($sql);
     $stmt->bind_param("iss", $usuario_id, $tipo_dados, $formato);
@@ -130,20 +131,21 @@ if (isset($_POST['exportar_estoque'])) {
 if (isset($_POST['exportar_fornecedores'])) {
     $formato = $_POST['formato'];
 
-    $sql_fornecedores = "SELECT nome, contato, endereco FROM fornecedores";
+    $sql_fornecedores = "SELECT nome, telefone, endereco, email FROM fornecedores";
     $resultado_fornecedores = $conexao->query($sql_fornecedores);
 
     if ($formato === 'csv') {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="fornecedores_' . date('Y-m-d') . '.csv"');
         $output = fopen('php://output', 'w');
-        fputcsv($output, ['Nome', 'Contato', 'Endereço'], ';');
+        fputcsv($output, ['Nome', 'Telefone', 'Endereço', 'Email'], ';');
 
         while ($row = $resultado_fornecedores->fetch_assoc()) {
             fputcsv($output, [
                 $row['nome'],
-                $row['contato'],
-                $row['endereco'] ?? '-'
+                $row['telefone'],
+                $row['endereco'] ?? '-',
+                $row['email'] ?? '-'
             ], ';');
         }
         fclose($output);
@@ -152,8 +154,9 @@ if (isset($_POST['exportar_fornecedores'])) {
         while ($row = $resultado_fornecedores->fetch_assoc()) {
             $dados[] = [
                 'nome' => $row['nome'],
-                'contato' => $row['contato'],
-                'endereco' => $row['endereco'] ?? '-'
+                'telefone' => $row['telefone'],
+                'endereco' => $row['endereco'] ?? '-',
+                'email' => $row['email'] ?? '-'
             ];
         }
         header('Content-Type: application/json');
@@ -169,7 +172,7 @@ if (isset($_POST['exportar_fornecedores'])) {
 if (isset($_POST['exportar_produtos'])) {
     $formato = $_POST['formato'];
 
-    $sql_produtos = "SELECT p.nome_produto, c.nome as nome_categoria, p.quantidade, p.preco_unitario_venda, f.nome as nome_fornecedor 
+    $sql_produtos = "SELECT p.nome_produto, c.nome as nome_categoria, p.quantidade, p.preco as preco_unitario_venda, f.nome as nome_fornecedor, p.data_validade 
                      FROM produtos p 
                      LEFT JOIN categorias c ON p.categoria_id = c.id 
                      LEFT JOIN fornecedores f ON p.fornecedor_id = f.id";
@@ -179,7 +182,7 @@ if (isset($_POST['exportar_produtos'])) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="produtos_' . date('Y-m-d') . '.csv"');
         $output = fopen('php://output', 'w');
-        fputcsv($output, ['Produto', 'Categoria', 'Quantidade', 'Preço Unitário', 'Fornecedor'], ';');
+        fputcsv($output, ['Produto', 'Categoria', 'Quantidade', 'Preço Unitário', 'Fornecedor', 'Data de Validade'], ';');
 
         while ($row = $resultado_produtos->fetch_assoc()) {
             fputcsv($output, [
@@ -187,7 +190,8 @@ if (isset($_POST['exportar_produtos'])) {
                 $row['nome_categoria'] ?? 'Sem Categoria',
                 $row['quantidade'],
                 number_format($row['preco_unitario_venda'], 2, ',', '.'),
-                $row['nome_fornecedor'] ?? '-'
+                $row['nome_fornecedor'] ?? '-',
+                $row['data_validade'] ? date('d/m/Y', strtotime($row['data_validade'])) : 'Não definida'
             ], ';');
         }
         fclose($output);
@@ -199,7 +203,8 @@ if (isset($_POST['exportar_produtos'])) {
                 'categoria' => $row['nome_categoria'] ?? 'Sem Categoria',
                 'quantidade' => $row['quantidade'],
                 'preco_unitario' => $row['preco_unitario_venda'],
-                'fornecedor' => $row['nome_fornecedor'] ?? '-'
+                'fornecedor' => $row['nome_fornecedor'] ?? '-',
+                'data_validade' => $row['data_validade'] ? date('d/m/Y', strtotime($row['data_validade'])) : 'Não definida'
             ];
         }
         header('Content-Type: application/json');
@@ -261,6 +266,168 @@ if (isset($_POST['exportar_producao'])) {
     exit();
 }
 
+// Exportar Produtos por Fornecedores
+if (isset($_POST['exportar_produtos_fornecedores'])) {
+    $formato = $_POST['formato'];
+
+    $sql_produtos_fornecedores = "SELECT pf.nome_produto, f.nome as nome_fornecedor, c.nome as nome_categoria, pf.preco_unitario, pf.data_validade 
+                                  FROM produtos_fornecedores pf 
+                                  JOIN fornecedores f ON pf.fornecedor_id = f.id 
+                                  LEFT JOIN categorias c ON pf.categoria_id = c.id";
+    $resultado_produtos_fornecedores = $conexao->query($sql_produtos_fornecedores);
+
+    if ($formato === 'csv') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="produtos_fornecedores_' . date('Y-m-d') . '.csv"');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['Produto', 'Fornecedor', 'Categoria', 'Preço Unitário', 'Data de Validade'], ';');
+
+        while ($row = $resultado_produtos_fornecedores->fetch_assoc()) {
+            fputcsv($output, [
+                $row['nome_produto'],
+                $row['nome_fornecedor'],
+                $row['nome_categoria'] ?? 'Sem Categoria',
+                number_format($row['preco_unitario'], 2, ',', '.'),
+                $row['data_validade'] ? date('d/m/Y', strtotime($row['data_validade'])) : 'Não definida'
+            ], ';');
+        }
+        fclose($output);
+    } else {
+        $dados = [];
+        while ($row = $resultado_produtos_fornecedores->fetch_assoc()) {
+            $dados[] = [
+                'produto' => $row['nome_produto'],
+                'fornecedor' => $row['nome_fornecedor'],
+                'categoria' => $row['nome_categoria'] ?? 'Sem Categoria',
+                'preco_unitario' => $row['preco_unitario'],
+                'data_validade' => $row['data_validade'] ? date('d/m/Y', strtotime($row['data_validade'])) : 'Não definida'
+            ];
+        }
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="produtos_fornecedores_' . date('Y-m-d') . '.json"');
+        echo json_encode($dados);
+    }
+
+    registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'produtos_fornecedores', $formato);
+    exit();
+}
+
+// Exportar Pedidos a Fornecedores
+if (isset($_POST['exportar_pedidos_fornecedores'])) {
+    $data_inicio = $_POST['data_inicio'];
+    $data_fim = $_POST['data_fim'];
+    $formato = $_POST['formato'];
+
+    $sql_pedidos = "SELECT pf.nome_produto, f.nome as nome_fornecedor, c.nome as nome_categoria, pf.quantidade, pf.preco_unitario, 
+                    pf.imposto_distrital, pf.imposto_nacional, pf.taxa_entrega, pf.outras_taxas, pf.data_validade, pf.status, pf.criado_em 
+                    FROM pedidos_fornecedores pf 
+                    JOIN fornecedores f ON pf.fornecedor_id = f.id 
+                    LEFT JOIN categorias c ON pf.categoria_id = c.id 
+                    WHERE pf.criado_em BETWEEN ? AND ?";
+    $stmt_pedidos = $conexao->prepare($sql_pedidos);
+    $stmt_pedidos->bind_param("ss", $data_inicio, $data_fim);
+    $stmt_pedidos->execute();
+    $resultado_pedidos = $stmt_pedidos->get_result();
+
+    if ($formato === 'csv') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="pedidos_fornecedores_' . $data_inicio . '_a_' . $data_fim . '.csv"');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['Produto', 'Fornecedor', 'Categoria', 'Quantidade', 'Preço Unitário', 'Imposto Distrital', 'Imposto Nacional', 'Taxa de Entrega', 'Outras Taxas', 'Data de Validade', 'Status', 'Data do Pedido'], ';');
+
+        while ($row = $resultado_pedidos->fetch_assoc()) {
+            fputcsv($output, [
+                $row['nome_produto'],
+                $row['nome_fornecedor'],
+                $row['nome_categoria'] ?? 'Sem Categoria',
+                $row['quantidade'],
+                number_format($row['preco_unitario'], 2, ',', '.'),
+                number_format($row['imposto_distrital'], 2, ',', '.'),
+                number_format($row['imposto_nacional'], 2, ',', '.'),
+                number_format($row['taxa_entrega'], 2, ',', '.'),
+                number_format($row['outras_taxas'], 2, ',', '.'),
+                $row['data_validade'] ? date('d/m/Y', strtotime($row['data_validade'])) : 'Não definida',
+                $row['status'],
+                date('d/m/Y H:i:s', strtotime($row['criado_em']))
+            ], ';');
+        }
+        fclose($output);
+    } else {
+        $dados = [];
+        while ($row = $resultado_pedidos->fetch_assoc()) {
+            $dados[] = [
+                'produto' => $row['nome_produto'],
+                'fornecedor' => $row['nome_fornecedor'],
+                'categoria' => $row['nome_categoria'] ?? 'Sem Categoria',
+                'quantidade' => $row['quantidade'],
+                'preco_unitario' => $row['preco_unitario'],
+                'imposto_distrital' => $row['imposto_distrital'],
+                'imposto_nacional' => $row['imposto_nacional'],
+                'taxa_entrega' => $row['taxa_entrega'],
+                'outras_taxas' => $row['outras_taxas'],
+                'data_validade' => $row['data_validade'] ? date('d/m/Y', strtotime($row['data_validade'])) : 'Não definida',
+                'status' => $row['status'],
+                'data_pedido' => date('d/m/Y H:i:s', strtotime($row['criado_em']))
+            ];
+        }
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="pedidos_fornecedores_' . $data_inicio . '_a_' . $data_fim . '.json"');
+        echo json_encode($dados);
+    }
+
+    registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'pedidos_fornecedores', $formato);
+    $stmt_pedidos->close();
+    exit();
+}
+
+// Exportar Logs (apenas para admin no Modo Completo)
+if (isset($_POST['exportar_logs'])) {
+    $data_inicio = $_POST['data_inicio'];
+    $data_fim = $_POST['data_fim'];
+    $formato = $_POST['formato'];
+
+    $sql_logs = "SELECT l.acao, l.data_acao, u.nome as nome_usuario 
+                 FROM logs l 
+                 LEFT JOIN usuarios u ON l.usuario_id = u.id 
+                 WHERE l.data_acao BETWEEN ? AND ?";
+    $stmt_logs = $conexao->prepare($sql_logs);
+    $stmt_logs->bind_param("ss", $data_inicio, $data_fim);
+    $stmt_logs->execute();
+    $resultado_logs = $stmt_logs->get_result();
+
+    if ($formato === 'csv') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="logs_' . $data_inicio . '_a_' . $data_fim . '.csv"');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['Ação', 'Data da Ação', 'Usuário'], ';');
+
+        while ($row = $resultado_logs->fetch_assoc()) {
+            fputcsv($output, [
+                $row['acao'],
+                date('d/m/Y H:i:s', strtotime($row['data_acao'])),
+                $row['nome_usuario'] ?? 'Desconhecido'
+            ], ';');
+        }
+        fclose($output);
+    } else {
+        $dados = [];
+        while ($row = $resultado_logs->fetch_assoc()) {
+            $dados[] = [
+                'acao' => $row['acao'],
+                'data_acao' => date('d/m/Y H:i:s', strtotime($row['data_acao'])),
+                'usuario' => $row['nome_usuario'] ?? 'Desconhecido'
+            ];
+        }
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="logs_' . $data_inicio . '_a_' . $data_fim . '.json"');
+        echo json_encode($dados);
+    }
+
+    registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'logs', $formato);
+    $stmt_logs->close();
+    exit();
+}
+
 // Listar categorias pra filtro de estoque
 $sql_categorias = "SELECT id, nome FROM categorias";
 $resultado_categorias = $conexao->query($sql_categorias);
@@ -283,41 +450,18 @@ $conexao->close();
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exportar Dados - Panificadora</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body>
-    <header>
-        <h1>Gestão de Estoque - Panificadora</h1>
-        <nav>
-            <a href="controle_estoque.php">Dashboard</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="adicionar_produto.php">Adicionar Produto</a>
-                <a href="planejamento_producao.php">Planejamento de Produção</a>
-            <?php endif; ?>
-            <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="listar_produtos.php">Listar Produtos</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="relatorios.php">Relatórios</a>
-                <a href="receitas.php">Receitas</a>
-                <a href="desperdicio.php">Desperdício</a>
-                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-            <?php endif; ?>
-            <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
-                <a href="ver_logs.php">Ver Logs</a>
-                <a href="exportar_dados.php">Exportar Dados</a>
-                <a href="gerenciar_backups.php">Gerenciar Backups</a>
-            <?php endif; ?>
-            <a href="logout.php">Sair</a>
-        </nav>
-    </header>
+    <?php include 'navbar.php'; ?>
     <div class="container">
-        <h2>Exportar Dados</h2>
 
         <!-- Exportar Vendas -->
         <h3>Exportar Vendas</h3>
@@ -328,11 +472,16 @@ $conexao->close();
             <input type="date" name="data_fim" value="<?php echo date('Y-m-d'); ?>" required><br>
 
             <label>Colunas a Exportar:</label><br>
-            <input type="checkbox" name="colunas_vendas[]" value="data" checked> Data da Venda
-            <input type="checkbox" name="colunas_vendas[]" value="produto" checked> Produto
-            <input type="checkbox" name="colunas_vendas[]" value="quantidade" checked> Quantidade Vendida
-            <input type="checkbox" name="colunas_vendas[]" value="preco" checked> Preço Unitário
-            <input type="checkbox" name="colunas_vendas[]" value="total" checked> Total<br>
+            Data da Venda
+            <input type="checkbox" name="colunas_vendas[]" value="data" checked>
+            Produto
+            <input type="checkbox" name="colunas_vendas[]" value="produto" checked>
+            Quantidade Vendida
+            <input type="checkbox" name="colunas_vendas[]" value="quantidade" checked>
+            Preço Unitário
+            <input type="checkbox" name="colunas_vendas[]" value="preco" checked>
+            Total
+            <input type="checkbox" name="colunas_vendas[]" value="total" checked><br>
 
             <label for="formato">Formato:</label>
             <select name="formato" required>
@@ -342,6 +491,7 @@ $conexao->close();
 
             <button type="submit" name="exportar_vendas">Exportar Vendas</button>
         </form>
+        <br>
 
         <!-- Exportar Estoque -->
         <h3>Exportar Estoque</h3>
@@ -362,6 +512,7 @@ $conexao->close();
 
             <button type="submit" name="exportar_estoque">Exportar Estoque</button>
         </form>
+        <br>
 
         <!-- Exportar Fornecedores -->
         <h3>Exportar Fornecedores</h3>
@@ -374,6 +525,7 @@ $conexao->close();
 
             <button type="submit" name="exportar_fornecedores">Exportar Fornecedores</button>
         </form>
+        <br>
 
         <!-- Exportar Produtos -->
         <h3>Exportar Produtos</h3>
@@ -386,6 +538,7 @@ $conexao->close();
 
             <button type="submit" name="exportar_produtos">Exportar Produtos</button>
         </form>
+        <br>
 
         <!-- Exportar Produção Planejada -->
         <h3>Exportar Produção Planejada</h3>
@@ -403,6 +556,58 @@ $conexao->close();
 
             <button type="submit" name="exportar_producao">Exportar Produção Planejada</button>
         </form>
+        <br>
+
+        <!-- Exportar Produtos por Fornecedores -->
+        <h3>Exportar Produtos por Fornecedores</h3>
+        <form method="POST" action="exportar_dados.php">
+            <label for="formato">Formato:</label>
+            <select name="formato" required>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+            </select><br>
+
+            <button type="submit" name="exportar_produtos_fornecedores">Exportar Produtos por Fornecedores</button>
+        </form>
+        <br>
+
+        <!-- Exportar Pedidos a Fornecedores -->
+        <h3>Exportar Pedidos a Fornecedores</h3>
+        <form method="POST" action="exportar_dados.php">
+            <label for="data_inicio">Data Início:</label>
+            <input type="date" name="data_inicio" value="<?php echo date('Y-m-d', strtotime('-7 days')); ?>" required>
+            <label for="data_fim">Data Fim:</label>
+            <input type="date" name="data_fim" value="<?php echo date('Y-m-d'); ?>" required><br>
+
+            <label for="formato">Formato:</label>
+            <select name="formato" required>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+            </select><br>
+
+            <button type="submit" name="exportar_pedidos_fornecedores">Exportar Pedidos a Fornecedores</button>
+        </form>
+        <br>
+
+        <!-- Exportar Logs (Apenas para Admin no Modo Completo) -->
+        <?php if ($_SESSION['perfil'] === 'admin' && $isCompleteMode): ?>
+            <h3>Exportar Logs do Sistema</h3>
+            <form method="POST" action="exportar_dados.php">
+                <label for="data_inicio">Data Início:</label>
+                <input type="date" name="data_inicio" value="<?php echo date('Y-m-d', strtotime('-7 days')); ?>" required>
+                <label for="data_fim">Data Fim:</label>
+                <input type="date" name="data_fim" value="<?php echo date('Y-m-d'); ?>" required><br>
+
+                <label for="formato">Formato:</label>
+                <select name="formato" required>
+                    <option value="csv">CSV</option>
+                    <option value="json">JSON</option>
+                </select><br>
+
+                <button type="submit" name="exportar_logs">Exportar Logs</button>
+            </form>
+            <br>
+        <?php endif; ?>
 
         <!-- Log de Exportações -->
         <h3>Últimas Exportações (Log)</h3>
@@ -433,5 +638,8 @@ $conexao->close();
             </tbody>
         </table>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 </body>
+
 </html>

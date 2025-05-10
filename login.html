@@ -3,30 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Login - Panificadora</title>
+    <title>Login - Panificadora</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f1f3f5;
+            margin: 0;
+        }
+        .login-container {
+            max-width: 400px;
+            width: 100%;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .login-header h1 {
+            font-size: 2rem;
+            color: #343a40;
+            font-weight: bold;
+        }
+        .error-message {
+            display: none;
+            color: #dc3545;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1> Login</h1>
-        </header>
-        <form action="login.php" method="post">
-            <input type="text" id="usuario" name="usuario" placeholder="Usuário" required>
-            <input type="text" name="cpf" placeholder="CPF (ex: 123.456.789-10)" required>
-            <input type="password" id="senha" name="senha" placeholder="Senha" required>
-            <button type="submit">Entrar</button>                
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Viola Panificadora</h1>
+            <h3 class="text-muted">Login</h3>
+        </div>
+        <form action="login.php" method="post" id="loginForm" novalidate>
+            <div class="mb-3">
+                <input type="text" class="form-control" id="usuario" name="usuario" placeholder="Usuário" required>
+                <div class="invalid-feedback">Por favor, insira um usuário.</div>
+            </div>
+            <div class="mb-3">
+                <input type="text" class="form-control" id="cpf" name="cpf" placeholder="CPF (123.456.789-00)" maxlength="14" oninput="formatarCPF(this)" required>
+                <div class="invalid-feedback">Por favor, insira um CPF válido.</div>
+            </div>
+            <div class="mb-3">
+                <input type="password" class="form-control" id="senha" name="senha" placeholder="Senha" required>
+                <div class="invalid-feedback">Por favor, insira uma senha.</div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mb-3">Entrar</button>
+            <div id="error-message" class="error-message"></div>
         </form>
     </div>
+
     <script>
         function formatarCPF(campo) {
-            let cpf = campo.value.replace(/\D/g, ''); // remove o que não é dígito
-            if (cpf.length > 11) cpf = cpf.slice(0, 11); // limita a 11 dígitos
-            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2'); // adiciona o primeiro ponto
-            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2'); // adiciona o segundo ponto
-            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2'); // adiciona o travessão
-            campo.value = cpf;
+            let value = campo.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+
+            if (value.length > 9) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            } else if (value.length > 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3');
+            } else if (value.length > 3) {
+                value = value.replace(/(\d{3})(\d{3})/, '$1.$2');
+            } else if (value.length > 0) {
+                value = value.replace(/(\d{3})/, '$1');
+            }
+
+            campo.value = value;
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        if (error) {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = decodeURIComponent(error);
+            errorMessage.style.display = 'block';
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

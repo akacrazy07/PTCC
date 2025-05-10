@@ -1,48 +1,94 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || !in_array($_SESSION['perfil'], ['admin', 'gerente'])) {
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true || !in_array($_SESSION['perfil'], ['admin'])) {
     header("Location: login.html");
     exit();
 }
 require_once 'conexao.php';
+require_once 'funcoes.php';
+$mensagem = '';
 
-// cadastrar ou atualizar fornecedor
+// Cadastrar ou atualizar fornecedor
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = $_POST['nome'];
-    $contato = $_POST['contato'];
+    $telefone = $_POST['telefone'];
     $endereco = !empty($_POST['endereco']) ? $_POST['endereco'] : null;
+    $cnpj = !empty($_POST['cnpj']) ? $_POST['cnpj'] : null;
+    $cpf = !empty($_POST['cpf']) ? $_POST['cpf'] : null;
+    $email = !empty($_POST['email']) ? $_POST['email'] : null;
+    $descrição = !empty($_POST['descrição']) ? $_POST['descrição'] : null;
+    $comentarios = !empty($_POST['comentarios']) ? $_POST['comentarios'] : null;
     $id = !empty($_POST['id']) ? $_POST['id'] : null;
 
     if ($id) {
-        // atualizar fornecedor existente
-        $sql = "UPDATE fornecedores SET nome = ?, contato = ?, endereco = ? WHERE id = ?";
+        // Atualizar fornecedor existente
+        $sql = "UPDATE fornecedores SET nome = ?, telefone = ?, endereco = ?, cnpj = ?, cpf = ?, email = ?, descrição = ?, comentarios = ? WHERE id = ?";
         $stmt = $conexao->prepare($sql);
-        $stmt->bind_param("sssi", $nome, $contato, $endereco, $id);
+        $stmt->bind_param("ssssssssi", $nome, $telefone, $endereco, $cnpj, $cpf, $email, $descrição, $comentarios, $id);
     } else {
-        // cadastrar novo fornecedor
-        $sql = "INSERT INTO fornecedores (nome, contato, endereco) VALUES (?, ?, ?)";
+        // Cadastrar novo fornecedor
+        $sql = "INSERT INTO fornecedores (nome, telefone, endereco, cnpj, cpf, email, descrição, comentarios) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $conexao->prepare($sql);
-        $stmt->bind_param("sss", $nome, $contato, $endereco);
+        $stmt->bind_param("ssssssss", $nome, $telefone, $endereco, $cnpj, $cpf, $email, $descrição, $comentarios);
     }
-    $stmt->execute();
+    if ($stmt->execute()) {
+        $mensagem = $id ? "Fornecedor atualizado com sucesso!" : "Fornecedor cadastrado com sucesso!";
+        $acao = "Cadastrou novo fornecedor de nome {$nome}";
+        registrarLog($conexao, $_SESSION['usuario_id'], $acao);
+    } else {
+        $mensagem = "Erro: " . $conexao->error;
+    }
     $stmt->close();
-    header("Location: gerenciar_fornecedores.php");
+    header("Location: gerenciar_fornecedores.php?mensagem=" . urlencode($mensagem));
     exit();
 }
 
-// excluir fornecedor
+// Excluir fornecedor
 if (isset($_GET['excluir'])) {
     $id = $_GET['excluir'];
-    $sql = "DELETE FROM fornecedores WHERE id = ?";
-    $stmt = $conexao->prepare($sql);
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: gerenciar_fornecedores.php");
+    $conexao->begin_transaction();
+    try {
+        // Deletar pedidos associados em pedidos_fornecedores
+        $sql_pedidos = "DELETE FROM pedidos_fornecedores WHERE fornecedor_id = ?";
+        $stmt_pedidos = $conexao->prepare($sql_pedidos);
+        $stmt_pedidos->bind_param("i", $id);
+        $stmt_pedidos->execute();
+        $stmt_pedidos->close();
+
+        // Deletar produtos associados (que deletará vendas automaticamente via CASCADE)
+        $sql_produtos = "DELETE FROM produtos WHERE fornecedor_id = ?";
+        $stmt_produtos = $conexao->prepare($sql_produtos);
+        $stmt_produtos->bind_param("i", $id);
+        $stmt_produtos->execute();
+        $stmt_produtos->close();
+
+        // Deletar produtos associados em produtos_fornecedores
+        $sql_produtos_fornecedores = "DELETE FROM produtos_fornecedores WHERE fornecedor_id = ?";
+        $stmt_produtos_fornecedores = $conexao->prepare($sql_produtos_fornecedores);
+        $stmt_produtos_fornecedores->bind_param("i", $id);
+        $stmt_produtos_fornecedores->execute();
+        $stmt_produtos_fornecedores->close();
+
+        // Deletar o fornecedor
+        $sql_fornecedor = "DELETE FROM fornecedores WHERE id = ?";
+        $stmt_fornecedor = $conexao->prepare($sql_fornecedor);
+        $stmt_fornecedor->bind_param("i", $id);
+        $stmt_fornecedor->execute();
+        $stmt_fornecedor->close();
+
+        $conexao->commit();
+        $mensagem = "Fornecedor excluído com sucesso!";
+        $acao = "Excluiu o fornecedor ID {$id}";
+        registrarLog($conexao, $_SESSION['usuario_id'], $acao);
+    } catch (Exception $e) {
+        $conexao->rollback();
+        $mensagem = "Erro ao excluir fornecedor: " . $e->getMessage();
+    }
+    header("Location: gerenciar_fornecedores.php?mensagem=" . urlencode($mensagem));
     exit();
 }
 
-// listar fornecedores
+// Listar fornecedores
 $sql_fornecedores = "SELECT * FROM fornecedores";
 $resultado_fornecedores = $conexao->query($sql_fornecedores);
 $fornecedores = [];
@@ -55,65 +101,118 @@ $conexao->close();
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Fornecedores - Panificadora</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Formatação de Telefone
+            const telefoneInput = document.querySelector('input[name="telefone"]');
+            telefoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '').substring(0, 11); // Limita a 11 números
+                if (value.length > 0) {
+                    value = '(' + value.substring(0, 2) + ') ' + value.substring(2, 7) + '-' + value.substring(7, 11);
+                }
+                e.target.value = value;
+            });
+
+            // Formatação de CNPJ
+            const cnpjInput = document.querySelector('input[name="cnpj"]');
+            cnpjInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '').substring(0, 14); // Limita a 14 números
+                if (value.length > 0) {
+                    value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+                }
+                e.target.value = value;
+            });
+
+            // Formatação de CPF
+            const cpfInput = document.querySelector('input[name="cpf"]');
+            cpfInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '').substring(0, 11); // Limita a 11 números
+                if (value.length > 0) {
+                    value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+                }
+                e.target.value = value;
+            });
+
+            // Validação de Email
+            const emailInput = document.querySelector('input[name="email"]');
+            emailInput.addEventListener('input', function(e) {
+                if (e.target.value && !e.target.value.includes('@')) {
+                    e.target.setCustomValidity('O e-mail deve conter o caractere @.');
+                } else {
+                    e.target.setCustomValidity('');
+                }
+            });
+        });
+    </script>
 </head>
+
 <body>
-    <header>
-        <h1>Gestão de Estoque - Panificadora</h1>
-        <nav>
-            <a href="controle_estoque.php">Dashboard</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="adicionar_produto.php">Adicionar Produto</a>
-                <a href="planejamento_producao.php">Planejamento de Produção</a>
-            <?php endif; ?>
-            <a href="registrar_venda.php">Registrar Venda</a>
-            <a href="listar_produtos.php">Listar Produtos</a>
-            <?php if (in_array($_SESSION['perfil'], ['admin', 'gerente'])): ?>
-                <a href="relatorios.php">Relatórios</a>
-                <a href="receitas.php">Receitas</a>
-                <a href="desperdicio.php">Desperdício</a>
-                <a href="gerenciar_promocoes.php">Gerenciar Promoções</a>
-            <?php endif; ?>
-            <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                <a href="gerenciar_fornecedores.php">Gerenciar Fornecedores</a>
-                <a href="gerenciar_usuarios.php">Gerenciar Usuários</a>
-                <a href="ver_logs.php">Ver Logs</a>
-                <a href="exportar_dados.php">Exportar Dados</a>
-                <a href="gerenciar_backups.php">Gerenciar Backups</a>
-            <?php endif; ?>
-            <a href="logout.php">Sair</a>
-        </nav>
-    </header>
+    <?php include 'navbar.php'; ?>
     <div class="container">
-        <h2>Gerenciar Fornecedores</h2>
+        <!-- Mensagem de feedback -->
+        <?php if (isset($_GET['mensagem'])): ?>
+            <div class="alert alert-info"><?php echo htmlspecialchars($_GET['mensagem']); ?></div>
+        <?php endif; ?>
 
         <!-- Formulário para cadastrar/editar fornecedor -->
+        <h3>Cadastrar Fornecedor</h3>
         <form method="POST" action="gerenciar_fornecedores.php">
             <input type="hidden" name="id" value="">
-            <label for="nome">Nome do Fornecedor:</label>
-            <input type="text" name="nome" required><br>
-
-            <label for="contato">Contato:</label>
-            <input type="text" name="contato" required placeholder="Ex.: (11) 99999-9999 ou email@exemplo.com"><br>
-
-            <label for="endereco">Endereço (opcional):</label>
-            <textarea name="endereco"></textarea><br>
-
-            <button type="submit">Salvar Fornecedor</button>
+            <div class="mb-3">
+                <label for="nome" class="form-label">Nome do Fornecedor:</label>
+                <input type="text" class="form-control" name="nome" required>
+            </div>
+            <div class="mb-3">
+                <label for="telefone" class="form-label">Telefone:</label>
+                <input type="text" class="form-control" name="telefone" required placeholder="Ex.: (11) 99999-9999">
+            </div>
+            <div class="mb-3">
+                <label for="cnpj" class="form-label">CNPJ (opcional):</label>
+                <input type="text" class="form-control" name="cnpj" placeholder="Ex.: 12.345.678/0001-99">
+            </div>
+            <div class="mb-3">
+                <label for="cpf" class="form-label">CPF:</label>
+                <input type="text" class="form-control" name="cpf" placeholder="Ex.: 123.456.789-00">
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">E-mail (opcional):</label>
+                <input type="email" class="form-control" name="email" placeholder="Ex.: fornecedor@exemplo.com">
+            </div>
+            <div class="mb-3">
+                <label for="endereco" class="form-label">Endereço</label>
+                <textarea class="form-control" name="endereco"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="descrição" class="form-label">Descrição</label>
+                <textarea class="form-control" name="descrição" placeholder="Ex.: Produtos fornecidos"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="comentarios" class="form-label">Comentários (opcional):</label>
+                <textarea class="form-control" name="comentarios" placeholder="Ex.: Observações sobre o fornecedor"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar Fornecedor</button>
         </form>
 
         <!-- Listar fornecedores -->
-        <h3>Fornecedores Cadastrados</h3>
-        <table border="1">
-            <thead>
+        <h3 class="mt-5">Fornecedores Cadastrados</h3>
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
                 <tr>
                     <th>Nome</th>
-                    <th>Contato</th>
+                    <th>Telefone</th>
+                    <th>CNPJ</th>
+                    <th>CPF</th>
+                    <th>E-mail</th>
                     <th>Endereço</th>
+                    <th>Descrição</th>
+                    <th>Comentários</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -122,22 +221,31 @@ $conexao->close();
                     <?php foreach ($fornecedores as $fornecedor): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($fornecedor['nome']); ?></td>
-                            <td><?php echo htmlspecialchars($fornecedor['contato']); ?></td>
+                            <td><?php echo htmlspecialchars($fornecedor['telefone']); ?></td>
+                            <td><?php echo $fornecedor['cnpj'] ? htmlspecialchars($fornecedor['cnpj']) : '-'; ?></td>
+                            <td><?php echo $fornecedor['cpf'] ? htmlspecialchars($fornecedor['cpf']) : '-'; ?></td>
+                            <td><?php echo $fornecedor['email'] ? htmlspecialchars($fornecedor['email']) : '-'; ?></td>
                             <td><?php echo $fornecedor['endereco'] ? htmlspecialchars($fornecedor['endereco']) : '-'; ?></td>
+                            <td><?php echo $fornecedor['descrição'] ? htmlspecialchars($fornecedor['descrição']) : '-'; ?></td>
+                            <td><?php echo $fornecedor['comentarios'] ? htmlspecialchars($fornecedor['comentarios']) : '-'; ?></td>
                             <td>
-                                <a href="editar_fornecedor.php?id=<?php echo $fornecedor['id']; ?>">Editar</a> |
-                                <a href="gerenciar_fornecedores.php?excluir=<?php echo $fornecedor['id']; ?>" 
-                                   onclick="return confirm('Tem certeza que deseja excluir este fornecedor?')">Excluir</a>
+                                <a href="editar_fornecedor.php?id=<?php echo $fornecedor['id']; ?>" class="btn btn-primary btn-sm">Editar</a>
+                                <a href="gerenciar_fornecedores.php?excluir=<?php echo $fornecedor['id']; ?>"
+                                    class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Tem certeza que deseja excluir este fornecedor? Todos os pedidos e produtos associados serão excluídos.')">Excluir</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="4">Nenhum fornecedor cadastrado.</td>
+                        <td colspan="9">Nenhum fornecedor cadastrado.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 </body>
+
 </html>
