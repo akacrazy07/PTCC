@@ -386,7 +386,7 @@ if (isset($_POST['exportar_logs'])) {
     $data_fim = $_POST['data_fim'];
     $formato = $_POST['formato'];
 
-    $sql_logs = "SELECT l.acao, l.data_acao, u.nome as nome_usuario 
+    $sql_logs = "SELECT l.acao, l.data_acao, u.usuario as nome_usuario 
                  FROM logs l 
                  LEFT JOIN usuarios u ON l.usuario_id = u.id 
                  WHERE l.data_acao BETWEEN ? AND ?";
@@ -434,7 +434,7 @@ $resultado_categorias = $conexao->query($sql_categorias);
 $categorias = $resultado_categorias->fetch_all(MYSQLI_ASSOC);
 
 // Listar logs de exportação
-$sql_logs = "SELECT l.*, u.nome as nome_usuario 
+$sql_logs = "SELECT l.*, u.usuario as nome_usuario 
              FROM log_exportacoes l 
              LEFT JOIN usuarios u ON l.usuario_id = u.id 
              ORDER BY l.data_exportacao DESC 
