@@ -6,6 +6,17 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true 
 }
 require_once 'conexao.php';
 
+// Limpar logs de exportação
+if (isset($_POST['limpar_logs']) && $_SESSION['perfil'] === 'admin') {
+    $sql_limpar = "TRUNCATE TABLE log_exportacoes";
+    $conexao->query($sql_limpar);
+    header("Location: exportar_dados.php");
+    exit();
+}
+
+// Configurar a conexão com o banco para UTF-8
+$conexao->set_charset("utf8");
+
 // Função pra registrar o log de exportação
 function registrarLogExportacao($conexao, $usuario_id, $tipo_dados, $formato)
 {
@@ -37,6 +48,8 @@ if (isset($_POST['exportar_vendas'])) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="vendas_' . $data_inicio . '_a_' . $data_fim . '.csv"');
         $output = fopen('php://output', 'w');
+        // Adicionar BOM para UTF-8
+        fwrite($output, "\xEF\xBB\xBF");
         $cabecalho = [];
         if (in_array('data', $colunas)) $cabecalho[] = 'Data da Venda';
         if (in_array('produto', $colunas)) $cabecalho[] = 'Produto';
@@ -66,9 +79,9 @@ if (isset($_POST['exportar_vendas'])) {
             if (in_array('total', $colunas)) $linha['total'] = $row['total'];
             $dados[] = $linha;
         }
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="vendas_' . $data_inicio . '_a_' . $data_fim . '.json"');
-        echo json_encode($dados);
+        echo json_encode($dados, JSON_UNESCAPED_UNICODE);
     }
 
     registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'vendas', $formato);
@@ -98,6 +111,7 @@ if (isset($_POST['exportar_estoque'])) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="estoque_' . date('Y-m-d') . '.csv"');
         $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
         fputcsv($output, ['Produto', 'Categoria', 'Quantidade em Estoque'], ';');
 
         while ($row = $resultado_estoque->fetch_assoc()) {
@@ -117,9 +131,9 @@ if (isset($_POST['exportar_estoque'])) {
                 'quantidade' => $row['quantidade']
             ];
         }
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="estoque_' . date('Y-m-d') . '.json"');
-        echo json_encode($dados);
+        echo json_encode($dados, JSON_UNESCAPED_UNICODE);
     }
 
     registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'estoque', $formato);
@@ -138,6 +152,7 @@ if (isset($_POST['exportar_fornecedores'])) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="fornecedores_' . date('Y-m-d') . '.csv"');
         $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
         fputcsv($output, ['Nome', 'Telefone', 'Endereço', 'Email'], ';');
 
         while ($row = $resultado_fornecedores->fetch_assoc()) {
@@ -159,9 +174,9 @@ if (isset($_POST['exportar_fornecedores'])) {
                 'email' => $row['email'] ?? '-'
             ];
         }
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="fornecedores_' . date('Y-m-d') . '.json"');
-        echo json_encode($dados);
+        echo json_encode($dados, JSON_UNESCAPED_UNICODE);
     }
 
     registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'fornecedores', $formato);
@@ -182,6 +197,7 @@ if (isset($_POST['exportar_produtos'])) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="produtos_' . date('Y-m-d') . '.csv"');
         $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
         fputcsv($output, ['Produto', 'Categoria', 'Quantidade', 'Preço Unitário', 'Fornecedor', 'Data de Validade'], ';');
 
         while ($row = $resultado_produtos->fetch_assoc()) {
@@ -207,9 +223,9 @@ if (isset($_POST['exportar_produtos'])) {
                 'data_validade' => $row['data_validade'] ? date('d/m/Y', strtotime($row['data_validade'])) : 'Não definida'
             ];
         }
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="produtos_' . date('Y-m-d') . '.json"');
-        echo json_encode($dados);
+        echo json_encode($dados, JSON_UNESCAPED_UNICODE);
     }
 
     registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'produtos', $formato);
@@ -235,6 +251,7 @@ if (isset($_POST['exportar_producao'])) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="producao_' . $data_inicio . '_a_' . $data_fim . '.csv"');
         $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
         fputcsv($output, ['Data da Produção', 'Produto', 'Quantidade Planejada', 'Data do Registro'], ';');
 
         while ($row = $resultado_producao->fetch_assoc()) {
@@ -256,9 +273,9 @@ if (isset($_POST['exportar_producao'])) {
                 'data_registro' => date('d/m/Y H:i:s', strtotime($row['data_registro']))
             ];
         }
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="producao_' . $data_inicio . '_a_' . $data_fim . '.json"');
-        echo json_encode($dados);
+        echo json_encode($dados, JSON_UNESCAPED_UNICODE);
     }
 
     registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'producao_planejada', $formato);
@@ -280,6 +297,7 @@ if (isset($_POST['exportar_produtos_fornecedores'])) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="produtos_fornecedores_' . date('Y-m-d') . '.csv"');
         $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
         fputcsv($output, ['Produto', 'Fornecedor', 'Categoria', 'Preço Unitário', 'Data de Validade'], ';');
 
         while ($row = $resultado_produtos_fornecedores->fetch_assoc()) {
@@ -303,9 +321,9 @@ if (isset($_POST['exportar_produtos_fornecedores'])) {
                 'data_validade' => $row['data_validade'] ? date('d/m/Y', strtotime($row['data_validade'])) : 'Não definida'
             ];
         }
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="produtos_fornecedores_' . date('Y-m-d') . '.json"');
-        echo json_encode($dados);
+        echo json_encode($dados, JSON_UNESCAPED_UNICODE);
     }
 
     registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'produtos_fornecedores', $formato);
@@ -333,6 +351,7 @@ if (isset($_POST['exportar_pedidos_fornecedores'])) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="pedidos_fornecedores_' . $data_inicio . '_a_' . $data_fim . '.csv"');
         $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
         fputcsv($output, ['Produto', 'Fornecedor', 'Categoria', 'Quantidade', 'Preço Unitário', 'Imposto Distrital', 'Imposto Nacional', 'Taxa de Entrega', 'Outras Taxas', 'Data de Validade', 'Status', 'Data do Pedido'], ';');
 
         while ($row = $resultado_pedidos->fetch_assoc()) {
@@ -370,9 +389,9 @@ if (isset($_POST['exportar_pedidos_fornecedores'])) {
                 'data_pedido' => date('d/m/Y H:i:s', strtotime($row['criado_em']))
             ];
         }
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="pedidos_fornecedores_' . $data_inicio . '_a_' . $data_fim . '.json"');
-        echo json_encode($dados);
+        echo json_encode($dados, JSON_UNESCAPED_UNICODE);
     }
 
     registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'pedidos_fornecedores', $formato);
@@ -399,6 +418,7 @@ if (isset($_POST['exportar_logs'])) {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="logs_' . $data_inicio . '_a_' . $data_fim . '.csv"');
         $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
         fputcsv($output, ['Ação', 'Data da Ação', 'Usuário'], ';');
 
         while ($row = $resultado_logs->fetch_assoc()) {
@@ -418,9 +438,9 @@ if (isset($_POST['exportar_logs'])) {
                 'usuario' => $row['nome_usuario'] ?? 'Desconhecido'
             ];
         }
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="logs_' . $data_inicio . '_a_' . $data_fim . '.json"');
-        echo json_encode($dados);
+        echo json_encode($dados, JSON_UNESCAPED_UNICODE);
     }
 
     registrarLogExportacao($conexao, $_SESSION['usuario_id'], 'logs', $formato);
@@ -590,7 +610,7 @@ $conexao->close();
         <br>
 
         <!-- Exportar Logs (Apenas para Admin no Modo Completo) -->
-        <?php if ($_SESSION['perfil'] === 'admin' && $isCompleteMode): ?>
+        <?php if ($_SESSION['perfil'] === 'admin' && $_SESSION['modo_completo']): ?>
             <h3>Exportar Logs do Sistema</h3>
             <form method="POST" action="exportar_dados.php">
                 <label for="data_inicio">Data Início:</label>
@@ -611,6 +631,10 @@ $conexao->close();
 
         <!-- Log de Exportações -->
         <h3>Últimas Exportações (Log)</h3>
+        <form method="POST" action="exportar_dados.php">
+            <button type="submit" name="limpar_logs" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja limpar todos os logs de exportação?');">Limpar Tabela de Logs</button>
+        </form>
+        <br>
         <table border="1">
             <thead>
                 <tr>
