@@ -165,6 +165,24 @@ $conexao->close();
             </div>
         </div>
 
+        <!-- Modal de Ver Mais -->
+        <div class="modal fade" id="verMaisModal" tabindex="-1" aria-labelledby="verMaisModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="verMaisModalLabel">Descrição Completa</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="ver_mais_descricao"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <h3 class="mt-5">Tasks de Pedidos Personalizados</h3>
         <?php if (empty($tasks)): ?>
             <p>Nenhuma task cadastrada ainda.</p>
@@ -185,7 +203,16 @@ $conexao->close();
                     <?php foreach ($tasks as $task): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($task['nome_pedido']); ?></td>
-                            <td><?php echo htmlspecialchars($task['descricao'] ?? 'Sem descrição'); ?></td>
+                            <td>
+                                <?php
+                                $descricao = $task['descricao'] ?? 'Sem descrição';
+                                if (strlen($descricao) > 10) {
+                                    echo '<button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#verMaisModal" data-descricao="' . htmlspecialchars($descricao) . '">Ver Mais</button>';
+                                } else {
+                                    echo htmlspecialchars($descricao);
+                                }
+                                ?>
+                            </td>
                             <td><?php echo date('d/m/Y', strtotime($task['data_entrega'])); ?></td>
                             <td><?php echo $task['hora_entrega'] ? date('H:i', strtotime($task['hora_entrega'])) : 'Não informado'; ?></td>
                             <td><?php echo $task['status'] === 'pendente' ? 'Pendente' : 'Concluído'; ?></td>
@@ -216,9 +243,9 @@ $conexao->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
     <script>
         // Preencher o modal de edição com os dados da task
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const editarTaskModal = document.getElementById('editarTaskModal');
-            editarTaskModal.addEventListener('show.bs.modal', function(event) {
+            editarTaskModal.addEventListener('show.bs.modal', function (event) {
                 const button = event.relatedTarget; // Botão que abriu o modal
                 const id = button.getAttribute('data-id');
                 const nome = button.getAttribute('data-nome');
@@ -233,6 +260,19 @@ $conexao->close();
                 modal.querySelector('#edit_descricao').value = descricao;
                 modal.querySelector('#edit_data_entrega').value = data;
                 modal.querySelector('#edit_hora_entrega').value = hora;
+            });
+
+            // Preencher o modal de ver mais com a descrição
+            const verMaisModal = document.getElementById('verMaisModal');
+            verMaisModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget; // Botão que abriu o modal
+                const descricao = button.getAttribute('data-descricao') || '';
+                let descricaoFormatada = '';
+                for (let i = 0; i < descricao.length; i += 30) {
+                    descricaoFormatada += descricao.slice(i, i + 30) + '<br>';
+                }
+                descricaoFormatada = descricaoFormatada.replace(/<br>$/, '');
+                this.querySelector('#ver_mais_descricao').innerHTML = descricaoFormatada;
             });
         });
     </script>
