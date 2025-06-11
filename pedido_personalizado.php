@@ -72,14 +72,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['editar']) && in_array(
     }
 }
 
-// Limpar tabela se ultrapassar 30 tasks
+// Limpar tabela se ultrapassar 30 tasks ou se solicitado manualmente
 $sql_count = "SELECT COUNT(*) as total FROM tasks";
 $resultado_count = $conexao->query($sql_count);
 $total_tasks = $resultado_count->fetch_assoc()['total'];
-if ($total_tasks > 30) {
+if ((isset($_POST['limpar_tabela']) && in_array($_SESSION['perfil'], ['gerente', 'admin'])) || $total_tasks > 30) {
     $sql_clear = "TRUNCATE TABLE tasks";
     $conexao->query($sql_clear);
-    $mensagem = "Tabela de tasks foi limpa automaticamente (limite de 30 tasks excedido).";
+    $mensagem = "Tabela de tasks foi limpa automaticamente (limite de 30 tasks excedido ou ação manual).";
+}
+
+// Cancelar task (apenas para gerente ou admin)
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cancelar']) && in_array($_SESSION['perfil'], ['gerente', 'admin'])) {
+    $task_id = intval($_POST['task_id']);
+    $stmt = $conexao->prepare("UPDATE tasks SET status = 'cancelado' WHERE id = ?");
+    $stmt->bind_param("i", $task_id);
+    if ($stmt->execute()) {
+        $mensagem = "Task cancelada com sucesso!";
+        $acao = "cancelou uma task: $task_id";
+        registrarLog($conexao, $_SESSION['usuario_id'], $acao);
+    } else {
+        $mensagem = "Erro ao cancelar task: " . $conexao->error;
+    }
+    $stmt->close();
 }
 
 // Listar tasks
@@ -184,6 +199,9 @@ $conexao->close();
         </div>
 
         <h3 class="mt-5">Tasks de Pedidos Personalizados</h3>
+        <form action="pedido_personalizado.php" method="post" style="display:inline;">
+            <button type="submit" name="limpar_tabela" class="btn btn-danger mb-3" onclick="return confirm('Tem certeza que deseja limpar todas as tasks?')">Limpar Tabela</button>
+        </form>
         <?php if (empty($tasks)): ?>
             <p>Nenhuma task cadastrada ainda.</p>
         <?php else: ?>
@@ -231,6 +249,14 @@ $conexao->close();
                                         data-hora="<?php echo $task['hora_entrega'] ?? ''; ?>">
                                         Editar
                                     </button>
+                                    <form action="pedido_personalizado.php" method="post" style="display:inline;">
+                                        <input type="hidden" name="task_id" value="<?php echo $task['id']; ?>">
+                                        <button type="submit" name="cancelar" class="btn btn-warning btn-sm" onclick="return confirm('Tem certeza que deseja cancelar este pedido?')">Cancelar</button>
+                                    </form>
+                                <?php elseif ($task['status'] === 'cancelado'): ?>
+                                    <span class="badge bg-warning text-dark">Cancelado</span>
+                                <?php elseif ($task['status'] === 'concluido'): ?>
+                                    <span class="badge bg-success">Concluído</span>
                                 <?php endif; ?>
                             </td>
                         </tr>

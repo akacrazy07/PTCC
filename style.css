@@ -1,3 +1,6 @@
+/* ==========================
+   RESET E BASE GLOBAL
+   ========================== */
 * {
     margin: 0;
     padding: 0;
@@ -8,89 +11,137 @@ body {
     background-color: #f5f6fa;
     color: #333;
     line-height: 1.6;
+    min-height: 100vh;
 }
+
+/* ==========================
+   HEADER E NAVEGAÇÃO
+   ========================== */
 header {
     background-color: #2c3e50;
-    color: white;
-    padding: 20px;
+    color: #fff;
+    padding: 24px 0 18px 0;
     text-align: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 header h1 {
-    font-size: 28px;
-    margin-bottom: 10px;
+    font-size: 2rem;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+nav {
+    margin-top: 8px;
 }
 nav a {
     color: #ecf0f1;
-    margin: 0 20px;
+    margin: 0 18px;
     text-decoration: none;
-    font-size: 16px;
-    transition: color 0.3s ease;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: color 0.3s;
+    position: relative;
 }
-nav a:hover {
+nav a:hover, nav a.active {
     color: #e74c3c;
-    text-decoration: none;
 }
+
+/* ==========================
+   CONTAINER E TÍTULOS
+   ========================== */
 .container {
-    width: 70%;
-    max-width: 900px;
+    width: 90%;
+    max-width: 950px;
     margin: 40px auto;
-    background-color: white;
-    padding: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    border-radius: 8px;
+    background: #fff;
+    padding: 32px 28px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    border-radius: 10px;
 }
-h2 {
+h2, h3 {
     color: #2c3e50;
-    margin-bottom: 20px;
-    font-size: 24px;
+    margin-bottom: 18px;
+    font-weight: 600;
 }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.15rem; }
+
+/* ==========================
+   FORMULÁRIOS E INPUTS
+   ========================== */
 input, select, textarea, button {
     width: 100%;
     padding: 12px;
     margin: 10px 0;
     border-radius: 5px;
     border: 1px solid #ddd;
-    font-size: 15px;
-    transition: border-color 0.3s ease;
+    font-size: 1rem;
+    transition: border-color 0.3s;
 }
 input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: #e74c3c;
+    background: #fff7f7;
 }
 textarea {
     resize: vertical;
     min-height: 120px;
 }
-button {
-    background-color: #e74c3c;
-    color: white;
+
+/* ==========================
+   BOTÕES
+   ========================== */
+button, .btn {
+    background: #e74c3c;
+    color: #fff;
     cursor: pointer;
     font-weight: bold;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 18px;
+    margin: 8px 0;
+    transition: background 0.3s, transform 0.2s;
+    box-shadow: 0 2px 6px rgba(231,76,60,0.08);
 }
-button:hover {
-    background-color: #c0392b;
-    transform: translateY(-2px);
+button:hover, .btn:hover {
+    background: #c0392b;
+    transform: translateY(-2px) scale(1.03);
 }
-table {
+.btn-info {
+    background: #0d6efd !important;
+    border: none !important;
+}
+.btn-info:hover {
+    background: #0b5ed7 !important;
+}
+.btn-editar {
+    background: #3498db;
+}
+.btn-editar:hover {
+    background: #2980b9;
+}
+.btn-excluir {
+    background: #e74c3c;
+    margin-left: 5px;
+}
+.btn-excluir:hover {
+    background: #c0392b;
+}
+.btn-feito {
+    background: #28a745;
+}
+.btn-lembrar {
+    background: #dc3545;
+}
+
+/* ==========================
+   TABELAS
+   ========================== */
+table, .result-table, .items-table, .history-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    font-size: 14px;
-}
-table input[type="number"] {
-    width: 60px;
-}
-.dashboard-info {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f2f2f2;
-    border-radius: 5px;
-}
-.dashboard-info p {
-    margin: 10px 0;
-    font-size: 16px;
+    font-size: 0.97rem;
+    background: #fff;
 }
 th, td {
     padding: 12px 15px;
@@ -98,98 +149,60 @@ th, td {
     text-align: left;
 }
 th {
-    background-color: #2c3e50;
-    color: white;
+    background: #2c3e50;
+    color: #fff;
     font-weight: bold;
 }
 tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background: #f9f9f9;
 }
 tr:hover {
-    background-color: #f1f1f1;
+    background: #f1f1f1;
 }
-.produto-imagem {
-    max-width: 60px;
-    border-radius: 5px;
+table input[type="number"] {
+    width: 60px;
 }
-.btn {
-    display: inline-block;
-    padding: 8px 12px;
-    text-decoration: none;
-    border-radius: 4px;
-    font-size: 14px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+
+.result-table th, .result-table td,
+.items-table th, .items-table td,
+.history-table th, .history-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
 }
-.btn-info {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
+.result-table th, .history-table th {
+    background: #f2f2f2;
+    color: #2c3e50;
 }
-.btn-info:hover {
-    background-color: #0b5ed7 !important;
-    border-color: #0a58ca !important;
+.items-table th {
+    background: #2c3e50;
+    color: #fff;
 }
-.btn-editar {
-    background-color: #3498db;
-    color: white;
-}
-.btn-editar:hover {
-    background-color: #2980b9;
-    transform: translateY(-2px);
-}
-.btn-excluir {
-    background-color: #e74c3c;
-    color: white;
-    margin-left: 5px;
-}
-.btn-excluir:hover {
-    background-color: #c0392b;
-    transform: translateY(-2px);
-}
-.mensagem {
-    padding: 10px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-    font-size: 15px;
-}
-.mensagem-success {
-    background-color: #d4edda;
-    color: #155724;
-}
-.mensagem-error {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-.imagem-atual {
-    margin: 15px 0;
-}
-.imagem-atual img {
+
+/* ==========================
+   IMAGENS
+   ========================== */
+.produto-imagem, .imagem-atual img {
     max-width: 100px;
     border-radius: 5px;
     margin-top: 5px;
 }
-.alertas-validade {
+
+/* ==========================
+   SEÇÕES E CARDS
+   ========================== */
+.dashboard-info, .alertas-validade, .alertas-backup, .backup-list, .search-section, .calculator-section, .filter-section {
     margin-top: 20px;
-    padding: 15px;
-    background-color: #ffcccc;
-    border-radius: 5px;
-}
-.alertas-validade h3 {
-    color: #721c24;
-}
-.alertas-backup {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #fff3cd;
-    border-radius: 5px;
-}
-.alertas-backup h3 {
-    color: #856404;
-}
-.backup-list {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
+    padding: 18px 20px;
     border-radius: 8px;
-    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+}
+.dashboard-info { background: #f2f2f2; }
+.alertas-validade { background: #ffcccc; }
+.alertas-validade h3 { color: #721c24; }
+.alertas-backup { background: #fff3cd; }
+.alertas-backup h3 { color: #856404; }
+.backup-list {
     max-width: 600px;
     margin: 0 auto 20px;
 }
@@ -200,127 +213,85 @@ tr:hover {
 .backup-item:last-child {
     border-bottom: none;
 }
-.search-section {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 20px;
+
+/* ==========================
+   MENSAGENS E ALERTAS
+   ========================== */
+.mensagem {
+    padding: 10px 16px;
     margin-bottom: 20px;
+    border-radius: 5px;
+    font-size: 1rem;
 }
-.search-section h3 {
-    margin-top: 0;
+.mensagem-success {
+    background: #d4edda;
+    color: #155724;
 }
-.search-section label {
-    display: inline-block;
-    margin-right: 10px;
-    margin-bottom: 10px;
+.mensagem-error {
+    background: #f8d7da;
+    color: #721c24;
 }
-.search-section input, .search-section select {
-    margin-right: 20px;
-    margin-bottom: 10px;
-    padding: 5px;
-}
-.result-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-.result-table th, .result-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-.result-table th {
-    background-color: #f2f2f2;
-}
-.calculator-section {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-.calculator-section label {
-    display: inline-block;
-    margin-right: 10px;
-    margin-bottom: 10px;
-}
-.calculator-section select, .calculator-section input {
-    margin-right: 20px;
-    margin-bottom: 10px;
-    padding: 5px;
-}
-.items-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-.items-table th, .items-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-.items-table th {
-    background-color: #2c3e50;
-}
-.total-section {
-    margin-top: 20px;
-    font-size: 1.1em;
-}
-.filter-section {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-.filter-section label {
-    margin-right: 10px;
-}
-.history-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-.history-table th, .history-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-.history-table th {
-    background-color: #f2f2f2;
-}
+
+/* ==========================
+   POPUP E OVERLAY
+   ========================== */
 .overlay {
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
     z-index: 1000;
     justify-content: center;
     align-items: center;
 }
 .popup {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
+    background: #fff;
+    padding: 24px 20px;
+    border-radius: 10px;
     text-align: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.10);
 }
 .popup button {
-    margin: 10px;
-    padding: 8px 16px;
+    margin: 10px 8px;
+    padding: 8px 18px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
-.popup .btn-feito {
-    background-color: #28a745;
-    color: white;
+
+/* ==========================
+   SEÇÕES DE FILTRO, BUSCA E CALCULADORA
+   ========================== */
+.search-section label, .calculator-section label, .filter-section label {
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 10px;
 }
-.popup .btn-lembrar {
-    background-color: #dc3545;
-    color: white;
+.search-section input, .search-section select,
+.calculator-section select, .calculator-section input {
+    margin-right: 20px;
+    margin-bottom: 10px;
+    padding: 5px;
+}
+
+/* ==========================
+   OUTROS
+   ========================== */
+.total-section {
+    margin-top: 20px;
+    font-size: 1.1em;
+}
+
+@media (max-width: 700px) {
+    .container {
+        width: 98%;
+        padding: 12px 4px;
+    }
+    th, td {
+        padding: 8px 6px;
+    }
+    .backup-list {
+        max-width: 98%;
+    }
 }

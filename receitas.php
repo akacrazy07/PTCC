@@ -93,6 +93,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
+// Limpar tabela de tasks se solicitado manualmente
+if (isset($_POST['limpar_tabela']) && in_array($_SESSION['perfil'], ['gerente', 'admin'])) {
+    $sql_clear = "TRUNCATE TABLE tasks";
+    $conexao->query($sql_clear);
+    $mensagem = "Tabela de tasks foi limpa manualmente.";
+}
+
+// Cancelar task (apenas para gerente ou admin)
+if (isset($_POST['cancelar']) && isset($_POST['task_id']) && in_array($_SESSION['perfil'], ['gerente', 'admin'])) {
+    $task_id = intval($_POST['task_id']);
+    $stmt = $conexao->prepare("UPDATE tasks SET status = 'cancelado' WHERE id = ?");
+    $stmt->bind_param("i", $task_id);
+    if ($stmt->execute()) {
+        $mensagem = "Task cancelada com sucesso!";
+        $acao = "cancelou uma task: $task_id";
+        registrarLog($conexao, $_SESSION['usuario_id'], $acao);
+    } else {
+        $mensagem = "Erro ao cancelar task: " . $conexao->error;
+    }
+    $stmt->close();
+}
+
 // Listar receitas
 $sql_receitas = "SELECT id, nome FROM receitas";
 $resultado_receitas = $conexao->query($sql_receitas);
@@ -229,6 +251,9 @@ $conexao->close();
     </table>
 <?php endif; ?>
         <h3 class="mt-5">Pedidos Personalizados</h3>
+        <form action="receitas.php" method="post" style="display:inline;">
+            <button type="submit" name="limpar_tabela" class="btn btn-danger mb-3" onclick="return confirm('Tem certeza que deseja limpar todas as tasks?')">Limpar Tabela</button>
+        </form>
         <?php if (empty($tasks)): ?>
             <p>Nenhum pedido pendente.</p>
         <?php else: ?>
@@ -311,18 +336,28 @@ $conexao->close();
                             <td><?php echo $task['hora_entrega'] ? date('H:i', strtotime($task['hora_entrega'])) : 'Não informado'; ?></td>
                             <td><?php echo htmlspecialchars($task['criado_por']); ?></td>
                             <td>
-                                <form action="receitas.php" method="post" style="display:inline;">
-                                    <input type="hidden" name="task_id" value="<?php echo $task['id']; ?>">
-                                    <button type="submit" name="concluir_task" class="btn btn-success btn-sm">Concluir</button>
-                                </form>
-                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editarTaskModal"
-                                    data-id="<?php echo $task['id']; ?>"
-                                    data-nome="<?php echo htmlspecialchars($task['nome_pedido']); ?>"
-                                    data-descricao="<?php echo htmlspecialchars($task['descricao'] ?? ''); ?>"
-                                    data-data="<?php echo $task['data_entrega']; ?>"
-                                    data-hora="<?php echo $task['hora_entrega'] ?? ''; ?>">
-                                    Editar
-                                </button>
+                                <?php if ($task['status'] === 'pendente' && in_array($_SESSION['perfil'], ['gerente', 'admin'])): ?>
+                                    <form action="receitas.php" method="post" style="display:inline;">
+                                        <input type="hidden" name="task_id" value="<?php echo $task['id']; ?>">
+                                        <button type="submit" name="concluir_task" class="btn btn-success btn-sm">Concluir</button>
+                                    </form>
+                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editarTaskModal"
+                                        data-id="<?php echo $task['id']; ?>"
+                                        data-nome="<?php echo htmlspecialchars($task['nome_pedido']); ?>"
+                                        data-descricao="<?php echo htmlspecialchars($task['descricao'] ?? ''); ?>"
+                                        data-data="<?php echo $task['data_entrega']; ?>"
+                                        data-hora="<?php echo $task['hora_entrega'] ?? ''; ?>">
+                                        Editar
+                                    </button>
+                                    <form action="receitas.php" method="post" style="display:inline;">
+                                        <input type="hidden" name="task_id" value="<?php echo $task['id']; ?>">
+                                        <button type="submit" name="cancelar" class="btn btn-warning btn-sm" onclick="return confirm('Tem certeza que deseja cancelar este pedido?')">Cancelar</button>
+                                    </form>
+                                <?php elseif ($task['status'] === 'cancelado'): ?>
+                                    <span class="badge bg-warning text-dark">Cancelado</span>
+                                <?php elseif ($task['status'] === 'concluido'): ?>
+                                    <span class="badge bg-success">Concluído</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

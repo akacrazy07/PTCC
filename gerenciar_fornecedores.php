@@ -4,6 +4,24 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true 
     header("Location: login.html");
     exit();
 }
+
+// Função para validar CPF (copiada do gerenciar_usuarios.php)
+function validarCPF($cpf)
+{
+    $cpf = preg_replace('/[^0-9]/', '', $cpf);
+    if (strlen($cpf) != 11) return false;
+    if (preg_match('/(\d)\1{10}/', $cpf)) return false;
+    for ($t = 9; $t < 11; $t++) {
+        $d = 0;
+        for ($c = 0; $c < $t; $c++) {
+            $d += $cpf[$c] * (($t + 1) - $c);
+        }
+        $d = ((10 * $d) % 11) % 10;
+        if ($cpf[$c] != $d) return false;
+    }
+    return true;
+}
+
 require_once 'conexao.php';
 require_once 'funcoes.php';
 $mensagem = '';
@@ -19,6 +37,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $descrição = !empty($_POST['descrição']) ? $_POST['descrição'] : null;
     $comentarios = !empty($_POST['comentarios']) ? $_POST['comentarios'] : null;
     $id = !empty($_POST['id']) ? $_POST['id'] : null;
+
+    // Checagem de duplicidade (CPF, CNPJ, Email)
+    if ($cpf) {
+        $sql_check = "SELECT id FROM fornecedores WHERE cpf = ?".($id ? " AND id != ?" : "");
+        $stmt_check = $conexao->prepare($sql_check);
+        if ($id) {
+            $stmt_check->bind_param("si", $cpf, $id);
+        } else {
+            $stmt_check->bind_param("s", $cpf);
+        }
+        $stmt_check->execute();
+        $stmt_check->store_result();
+        if ($stmt_check->num_rows > 0) {
+            $mensagem = "Já existe um fornecedor com este CPF!";
+            $stmt_check->close();
+            header("Location: gerenciar_fornecedores.php?mensagem=" . urlencode($mensagem));
+            exit();
+        }
+        $stmt_check->close();
+    }
+    if ($cnpj) {
+        $sql_check = "SELECT id FROM fornecedores WHERE cnpj = ?".($id ? " AND id != ?" : "");
+        $stmt_check = $conexao->prepare($sql_check);
+        if ($id) {
+            $stmt_check->bind_param("si", $cnpj, $id);
+        } else {
+            $stmt_check->bind_param("s", $cnpj);
+        }
+        $stmt_check->execute();
+        $stmt_check->store_result();
+        if ($stmt_check->num_rows > 0) {
+            $mensagem = "Já existe um fornecedor com este CNPJ!";
+            $stmt_check->close();
+            header("Location: gerenciar_fornecedores.php?mensagem=" . urlencode($mensagem));
+            exit();
+        }
+        $stmt_check->close();
+    }
+    if ($email) {
+        $sql_check = "SELECT id FROM fornecedores WHERE email = ?".($id ? " AND id != ?" : "");
+        $stmt_check = $conexao->prepare($sql_check);
+        if ($id) {
+            $stmt_check->bind_param("si", $email, $id);
+        } else {
+            $stmt_check->bind_param("s", $email);
+        }
+        $stmt_check->execute();
+        $stmt_check->store_result();
+        if ($stmt_check->num_rows > 0) {
+            $mensagem = "Já existe um fornecedor com este e-mail!";
+            $stmt_check->close();
+            header("Location: gerenciar_fornecedores.php?mensagem=" . urlencode($mensagem));
+            exit();
+        }
+        $stmt_check->close();
+    }
+
+    // Validação de CPF (se informado)
+    if ($cpf && !validarCPF($cpf)) {
+        $mensagem = "CPF inválido!";
+        header("Location: gerenciar_fornecedores.php?mensagem=" . urlencode($mensagem));
+        exit();
+    }
 
     if ($id) {
         // Atualizar fornecedor existente

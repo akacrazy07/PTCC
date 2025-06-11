@@ -14,7 +14,6 @@ if (isset($_POST['limpar_logs']) && $_SESSION['perfil'] === 'admin') {
     exit();
 }
 
-// Configurar a conexão com o banco para UTF-8
 $conexao->set_charset("utf8");
 
 // Função pra registrar o log de exportação
