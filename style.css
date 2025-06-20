@@ -30,7 +30,7 @@ header h1 {
     letter-spacing: 1px;
 }
 nav {
-    margin-top: 8px;
+   /* margin-top: 8px; */
 }
 nav a {
     color: #ecf0f1;
