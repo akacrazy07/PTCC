@@ -85,6 +85,15 @@ $conexao->close();
     </style>
     <script>
         function showPopup(descricao) {
+
+            // Adicionar quebra de linha a cada 30 caracteres
+            let descricaoFormatada = '';
+            for (let i = 0; i < descricao.length; i += 30) {
+                descricaoFormatada += descricao.slice(i, i + 30) + '<br>';
+            }
+            // Remover a última quebra de linha, se houver
+            descricaoFormatada = descricaoFormatada.replace(/<br>$/, '');
+            descricao = descricaoFormatada;
             const overlay = document.createElement('div');
             overlay.style.position = 'fixed';
             overlay.style.top = 0;

@@ -12,38 +12,108 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f1f3f5;
+            background: linear-gradient(120deg, #f1f3f5 0%, #e3e6ed 100%);
             margin: 0;
+            overflow: hidden;
         }
         .login-container {
             max-width: 400px;
             width: 100%;
-            padding: 30px;
-            background-color: #ffffff;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 35px 30px 30px 30px;
+            background: rgba(255,255,255,0.98);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            position: relative;
+            opacity: 0;
+            transform: translateY(40px);
+            animation: fadeInUp 1s cubic-bezier(.23,1.01,.32,1) 0.2s forwards;
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: none;
+            }
         }
         .login-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
         .login-header h1 {
-            font-size: 2rem;
-            color: #343a40;
+            font-size: 2.1rem;
+            color: #2d3748;
             font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            animation: fadeIn 1.2s;
+        }
+        .login-header h3 {
+            color: #6c757d;
+            font-weight: 400;
+            font-size: 1.1rem;
+            margin-bottom: 0;
+            animation: fadeIn 1.4s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .form-control {
+            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            box-shadow: 0 1px 2px rgba(44,62,80,0.03);
+        }
+        .form-control:focus {
+            border-color: #4f8cff;
+            box-shadow: 0 0 0 2px #4f8cff33;
+            background: #f8fbff;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #4f8cff 0%, #1e90ff 100%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px 0 #4f8cff22;
+            transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background: linear-gradient(90deg, #1e90ff 0%, #4f8cff 100%);
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 4px 16px 0 #4f8cff33;
         }
         .error-message {
             display: none;
             color: #dc3545;
             margin-top: 10px;
             text-align: center;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            animation: fadeIn 0.7s;
+        }
+        #timer-message {
+            color: #ff9800;
+            font-weight: 600;
+            font-size: 1.05rem;
+            animation: fadeIn 0.7s;
+        }
+        /* Animação de input shake para erro */
+        .form-control.is-invalid {
+            animation: shake 0.25s linear 1;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translateX(-2px); }
+            20%, 80% { transform: translateX(4px); }
+            30%, 50%, 70% { transform: translateX(-8px); }
+            40%, 60% { transform: translateX(8px); }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1>Viola Panificadora</h1>
+            <h1>SEV - Sistema de Estoque e Vendas</h1>
             <h3 class="text-muted">Login</h3>
         </div>
         <form action="login.php" method="post" id="loginForm" novalidate>
@@ -61,6 +131,7 @@
             </div>
             <button type="submit" class="btn btn-primary w-100 mb-3">Entrar</button>
             <div id="error-message" class="error-message"></div>
+            <div id="timer-message" class="error-message"></div>
         </form>
     </div>
 
@@ -82,12 +153,49 @@
             campo.value = value;
         }
 
+        // Animação de fade-in para o body (caso queira mais efeito)
+        document.body.style.opacity = 0;
+        window.onload = function() {
+            document.body.style.transition = 'opacity 0.7s';
+            document.body.style.opacity = 1;
+        };
+
         const urlParams = new URLSearchParams(window.location.search);
         const error = urlParams.get('error');
         if (error) {
             const errorMessage = document.getElementById('error-message');
-            errorMessage.textContent = decodeURIComponent(error);
-            errorMessage.style.display = 'block';
+            const timerMessage = document.getElementById('timer-message');
+            // Detecta se a mensagem contém tempo restante
+            const tempoRegex = /Tente novamente em (\d+) minuto\(s\)(?: e (\d+) segundo\(s\))?/;
+            const match = decodeURIComponent(error).match(tempoRegex);
+            if (match) {
+                let minutos = parseInt(match[1]) || 0;
+                let segundos = parseInt(match[2]) || 0;
+                let totalSegundos = minutos * 60 + segundos;
+                document.querySelector('button[type="submit"]').disabled = true;
+                errorMessage.style.display = 'none';
+                timerMessage.style.display = 'block';
+                function atualizarTimer() {
+                    if (totalSegundos > 0) {
+                        let m = Math.floor(totalSegundos / 60);
+                        let s = totalSegundos % 60;
+                        timerMessage.textContent = `Muitas tentativas de login. Tente novamente em ${m} minuto(s) e ${s} segundo(s).`;
+                        totalSegundos--;
+                    } else {
+                        timerMessage.textContent = '';
+                        document.querySelector('button[type="submit"]').disabled = false;
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                }
+                atualizarTimer();
+                let interval = setInterval(() => {
+                    atualizarTimer();
+                    if (totalSegundos < 0) clearInterval(interval);
+                }, 1000);
+            } else {
+                errorMessage.textContent = decodeURIComponent(error);
+                errorMessage.style.display = 'block';
+            }
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     </script>

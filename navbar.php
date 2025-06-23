@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Estilos do dropdown*/
         .navbar .dropdown:hover .dropdown-menu {
             display: block;
             opacity: 1;
@@ -46,7 +45,6 @@
             width: 85%;
         }
 
-        /* Estilo do switch e mensagem */
         .switch-container {
             display: flex;
             align-items: center;
@@ -55,7 +53,6 @@
             top: -1px;
             right: 25px;
             margin-left: auto;
-            /* Alinha à direita por padrão */
         }
 
         .switch {
@@ -105,13 +102,35 @@
 
         .switch-label {
             color: #fff;
-            /* Cor do texto ajustada para contraste com o fundo escuro da navbar */
             font-size: 14px;
         }
     </style>
 </head>
 
 <body>
+    <?php
+    // Garantir que a sessão está iniciada
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    // Inicializar modo completo se não estiver definido
+    if (!isset($_SESSION['modo_completo'])) {
+        $_SESSION['modo_completo'] = false;
+    }
+
+    // Atualizar modo completo com base em requisição POST (do switch)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modo_completo'])) {
+        $_SESSION['modo_completo'] = $_POST['modo_completo'] === 'true';
+        // Responder com JSON para o AJAX
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    $isCompleteMode = $_SESSION['modo_completo'];
+    ?>
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <?php
@@ -136,6 +155,7 @@
                     'pedido_personalizado.php' => 'Pedido Personalizado',
                     'pedidos_fornecedores.php' => 'Pedidos a Fornecedores',
                     'produtos_por_fornecedor.php' => 'Produtos por Fornecedor',
+                    'editar_produto.php' => 'Editar Produto',
                 ];
                 $title = isset($page_titles[$current_page]) ? $page_titles[$current_page] : $title;
             }
@@ -186,10 +206,6 @@
                             </ul>
                         </li>
                     <?php elseif ($_SESSION['perfil'] === 'admin'): ?>
-                        <?php
-                        // Verificar o estado do modo no localStorage via JavaScript (passado como parâmetro na URL ou lido no cliente)
-                        $isCompleteMode = isset($_GET['mode']) ? $_GET['mode'] === 'complete' : false;
-                        ?>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="gerenciamentoDropdown">Gerenciamento</a>
                             <ul class="dropdown-menu" aria-labelledby="gerenciamentoDropdown">
@@ -197,7 +213,6 @@
                                 <li><a class="dropdown-item" href="gerenciar_usuarios.php">Gerenciar Usuários</a></li>
                                 <li><a class="dropdown-item" href="gerenciar_backups.php">Gerenciar Backups</a></li>
                                 <?php if ($isCompleteMode): ?>
-                                    <!-- Funcionalidades do gerente no Modo Completo -->
                                     <li><a class="dropdown-item" href="adicionar_produto.php">Adicionar Produto</a></li>
                                     <li><a class="dropdown-item" href="planejamento_producao.php">Planejamento de Produção</a></li>
                                     <li><a class="dropdown-item" href="gerenciar_promocoes.php">Gerenciar Promoções</a></li>
@@ -212,7 +227,6 @@
                                 <li><a class="dropdown-item" href="ver_logs.php">Ver Logs</a></li>
                                 <li><a class="dropdown-item" href="exportar_dados.php">Exportar Dados</a></li>
                                 <?php if ($isCompleteMode): ?>
-                                    <!-- Funcionalidades do gerente no Modo Completo -->
                                     <li><a class="dropdown-item" href="receitas.php">Receitas</a></li>
                                     <li><a class="dropdown-item" href="desperdicio.php">Desperdício</a></li>
                                     <li><a class="dropdown-item" href="historico_precos.php">Histórico de Preços</a></li>
@@ -233,10 +247,10 @@
                     <?php if ($_SESSION['perfil'] === 'admin'): ?>
                         <div class="switch-container">
                             <label class="switch">
-                                <input type="checkbox" id="modeSwitch">
+                                <input type="checkbox" id="modeSwitch" <?php echo $isCompleteMode ? 'checked' : ''; ?>>
                                 <span class="slider"></span>
                             </label>
-                            <span class="switch-label" id="modeLabel">Modo Completo Off</span>
+                            <span class="switch-label" id="modeLabel">Modo Completo <?php echo $isCompleteMode ? 'On' : 'Off'; ?></span>
                         </div>
                     <?php endif; ?>
                     <li class="nav-item">
@@ -248,43 +262,31 @@
     </nav>
 
     <script>
-        // Atualizar os links para incluir o parâmetro mode
         document.addEventListener('DOMContentLoaded', function() {
             const modeSwitch = document.getElementById('modeSwitch');
             const modeLabel = document.getElementById('modeLabel');
 
             if (modeSwitch && modeLabel) {
-                // Verificar o estado salvo no localStorage
-                const savedMode = localStorage.getItem('adminMode') === 'complete';
-                modeSwitch.checked = savedMode;
-                modeLabel.textContent = savedMode ? 'Modo Completo On' : 'Modo Completo Off';
-
-                // Função para atualizar os links com o parâmetro mode
-                function updateLinks() {
-                    const mode = localStorage.getItem('adminMode') === 'complete' ? 'complete' : 'essential';
-                    document.querySelectorAll('.navbar-nav a').forEach(link => {
-                        const url = new URL(link.href, window.location.origin);
-                        url.searchParams.set('mode', mode);
-                        link.href = url.toString();
-                    });
-                }
-
-                // Atualizar links ao carregar a página
-                updateLinks();
-
-                // Atualizar o estado ao mudar o switch
                 modeSwitch.addEventListener('change', function() {
                     const isCompleteMode = this.checked;
-                    localStorage.setItem('adminMode', isCompleteMode ? 'complete' : 'essential');
-                    modeLabel.textContent = isCompleteMode ? 'Modo Completo On' : 'Modo Completo Off';
 
-                    // Atualizar os links após mudar o switch
-                    updateLinks();
-
-                    // Redirecionar para a mesma página com o parâmetro mode
-                    const currentUrl = new URL(window.location.href);
-                    currentUrl.searchParams.set('mode', isCompleteMode ? 'complete' : 'essential');
-                    window.location.href = currentUrl.toString();
+                    // Enviar requisição AJAX para atualizar a sessão
+                    fetch(window.location.pathname, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: 'modo_completo=' + isCompleteMode
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                modeLabel.textContent = isCompleteMode ? 'Modo Completo On' : 'Modo Completo Off';
+                                // Recarregar a página para refletir as mudanças na navbar
+                                window.location.reload();
+                            }
+                        })
+                        .catch(error => console.error('Erro ao atualizar modo:', error));
                 });
             }
         });

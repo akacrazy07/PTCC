@@ -47,23 +47,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['adicionar'])) {
     $senha = password_hash($_POST['senha'], PASSWORD_DEFAULT);
     $perfil = $_POST['perfil'];
 
-    if (!validarCPF($cpf)) {
-        $mensagem = "CPF inválido!";
+    // Checagem de duplicidade (usuario, CPF, Email)
+    $stmt_check = $conexao->prepare("SELECT id FROM usuarios WHERE usuario = ? OR cpf = ? OR email = ?");
+    $stmt_check->bind_param("sss", $usuario, $cpf, $email);
+    $stmt_check->execute();
+    $stmt_check->store_result();
+    if ($stmt_check->num_rows > 0) {
+        $mensagem = "Já existe um usuário com este nome, CPF ou e-mail!";
+        $stmt_check->close();
     } else {
-        $stmt = $conexao->prepare("INSERT INTO usuarios (usuario, cpf, email, senha, perfil) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssss", $usuario, $cpf, $email, $senha, $perfil);
-        if ($stmt->execute()) {
-            $mensagem = "Usuário adicionado com sucesso!";
-            $usuario_id = $_SESSION['usuario_id'];
-            $acao = "Adicionou usuário '$usuario' ($perfil)";
-            $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
-            $stmt_log->bind_param("is", $usuario_id, $acao);
-            $stmt_log->execute();
-            $stmt_log->close();
+        $stmt_check->close();
+        if (!validarCPF($cpf)) {
+            $mensagem = "CPF inválido!";
         } else {
-            $mensagem = "Erro ao adicionar usuário: " . $conexao->error;
+            $stmt = $conexao->prepare("INSERT INTO usuarios (usuario, cpf, email, senha, perfil) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssss", $usuario, $cpf, $email, $senha, $perfil);
+            if ($stmt->execute()) {
+                $mensagem = "Usuário adicionado com sucesso!";
+                $usuario_id = $_SESSION['usuario_id'];
+                $acao = "Adicionou usuário '$usuario' ($perfil)";
+                $stmt_log = $conexao->prepare("INSERT INTO logs (usuario_id, acao) VALUES (?, ?)");
+                $stmt_log->bind_param("is", $usuario_id, $acao);
+                $stmt_log->execute();
+                $stmt_log->close();
+            } else {
+                $mensagem = "Erro ao adicionar usuário: " . $conexao->error;
+            }
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 
